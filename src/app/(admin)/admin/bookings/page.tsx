@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { adminBookingApi } from "@/lib/api";
 import type { Booking } from "@/types";
+import ErrorBox from "@/components/ErrorBox";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
   booked:              { label: "Đã đặt",   bg: "#EAF5EA", color: "#2E6B2E" },
@@ -12,7 +13,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
 };
 
 export default function AdminBookingsPage() {
-  const { data: bookings, isLoading } = useSWR("/admin/bookings", adminBookingApi.list);
+  const { data: bookings, isLoading, error, mutate } = useSWR("/admin/bookings", adminBookingApi.list);
 
   return (
     <div>
@@ -26,6 +27,8 @@ export default function AdminBookingsPage() {
           </p>
         </div>
       </div>
+
+      {error && <ErrorBox error={error} onRetry={() => mutate()} />}
 
       <div
         className="rounded-xl border overflow-hidden"

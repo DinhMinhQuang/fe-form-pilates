@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { adminStudentApi } from "@/lib/api";
 import type { Student } from "@/types";
+import ErrorBox from "@/components/ErrorBox";
+import CreateStudentModal from "@/components/admin/CreateStudentModal";
 
 export default function AdminStudentsPage() {
-  const { data: students, isLoading } = useSWR("/admin/students", adminStudentApi.list);
+  const { data: students, isLoading, error, mutate } = useSWR("/admin/students", adminStudentApi.list);
+  const [showCreate, setShowCreate] = useState(false);
 
   return (
     <div>
@@ -21,10 +25,19 @@ export default function AdminStudentsPage() {
         <button
           className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
           style={{ background: "var(--charcoal)", color: "var(--white)" }}
+          onClick={() => setShowCreate(true)}
         >
           + Thêm học viên
         </button>
       </div>
+
+      <CreateStudentModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={() => { setShowCreate(false); mutate(); }}
+      />
+
+      {error && <ErrorBox error={error} onRetry={() => mutate()} />}
 
       <div
         className="rounded-xl border overflow-hidden"

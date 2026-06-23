@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { adminSessionApi } from "@/lib/api";
 import type { ClassSession } from "@/types";
+import ErrorBox from "@/components/ErrorBox";
+import CreateSessionModal from "@/components/admin/CreateSessionModal";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
   scheduled:  { label: "Sắp diễn ra", bg: "#EAF5EA", color: "#2E6B2E" },
@@ -11,7 +14,8 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
 };
 
 export default function AdminSessionsPage() {
-  const { data: sessions, isLoading } = useSWR("/admin/sessions", adminSessionApi.list);
+  const { data: sessions, isLoading, error, mutate } = useSWR("/admin/sessions", adminSessionApi.list);
+  const [showCreate, setShowCreate] = useState(false);
 
   return (
     <div>
@@ -27,10 +31,19 @@ export default function AdminSessionsPage() {
         <button
           className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
           style={{ background: "var(--charcoal)", color: "var(--white)" }}
+          onClick={() => setShowCreate(true)}
         >
           + Thêm buổi tập
         </button>
       </div>
+
+      <CreateSessionModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={() => { setShowCreate(false); mutate(); }}
+      />
+
+      {error && <ErrorBox error={error} onRetry={() => mutate()} />}
 
       <div
         className="rounded-xl border overflow-hidden"

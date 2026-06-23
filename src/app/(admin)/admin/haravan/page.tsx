@@ -3,9 +3,10 @@
 import useSWR from "swr";
 import { adminHaravanApi } from "@/lib/api";
 import type { HaravanProductMapping } from "@/types";
+import ErrorBox from "@/components/ErrorBox";
 
 export default function AdminHaravanPage() {
-  const { data: mappings, isLoading } = useSWR("/admin/haravan/product-mappings", adminHaravanApi.listMappings);
+  const { data: mappings, isLoading, error, mutate } = useSWR("/admin/haravan/product-mappings", adminHaravanApi.listMappings);
 
   return (
     <div>
@@ -19,6 +20,8 @@ export default function AdminHaravanPage() {
           </p>
         </div>
       </div>
+
+      {error && <ErrorBox error={error} onRetry={() => mutate()} />}
 
       <div
         className="rounded-xl border overflow-hidden"

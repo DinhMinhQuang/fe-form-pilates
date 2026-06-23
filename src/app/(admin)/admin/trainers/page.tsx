@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { adminTrainerApi } from "@/lib/api";
 import type { Trainer } from "@/types";
+import ErrorBox from "@/components/ErrorBox";
+import CreateTrainerModal from "@/components/admin/CreateTrainerModal";
 
 export default function AdminTrainersPage() {
-  const { data: trainers, isLoading } = useSWR("/admin/trainers", adminTrainerApi.list);
+  const { data: trainers, isLoading, error, mutate } = useSWR("/admin/trainers", adminTrainerApi.list);
+  const [showCreate, setShowCreate] = useState(false);
 
   return (
     <div>
@@ -21,10 +25,19 @@ export default function AdminTrainersPage() {
         <button
           className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
           style={{ background: "var(--charcoal)", color: "var(--white)" }}
+          onClick={() => setShowCreate(true)}
         >
           + Thêm HLV
         </button>
       </div>
+
+      <CreateTrainerModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={() => { setShowCreate(false); mutate(); }}
+      />
+
+      {error && <ErrorBox error={error} onRetry={() => mutate()} />}
 
       <div
         className="rounded-xl border overflow-hidden"

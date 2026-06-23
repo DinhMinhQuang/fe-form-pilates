@@ -52,7 +52,8 @@ async function request<T>(
     let msg = res.statusText;
     try {
       const body = await res.json();
-      msg = body.message ?? body.error ?? msg;
+      const raw = body.message ?? body.error?.message ?? body.error ?? msg;
+      msg = typeof raw === "string" ? raw : JSON.stringify(raw);
     } catch {
       // ignore
     }
