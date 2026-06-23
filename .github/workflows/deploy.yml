@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+        run: pnpm build
+
+      - name: Deploy
+        run: |
+          set -e
+
+          test -d out
+
+          VERSION=$(date +%Y%m%d%H%M%S)
+          RELEASE_DIR="/opt/form-pilates-web/releases/$VERSION"
+
+          mkdir -p "$RELEASE_DIR"
+
+          cp -R out/* "$RELEASE_DIR"
+
+          ln -sfn "$RELEASE_DIR" \
+            /opt/form-pilates-web/current
+
+          ls -dt /opt/form-pilates-web/releases/* \
+            | tail -n +6 \
+            | xargs -r rm -rf
