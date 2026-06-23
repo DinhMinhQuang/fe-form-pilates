@@ -20,7 +20,7 @@ export default function CreateTrainerModal({ open, onClose, onCreated }: Props) 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   function reset() {
     setFullName(""); setEmail(""); setPhone(""); setPassword(""); setError(null);
@@ -37,7 +37,7 @@ export default function CreateTrainerModal({ open, onClose, onCreated }: Props) 
       reset();
       onCreated();
     } catch (err) {
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }

@@ -20,7 +20,7 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   function reset() {
     setFullName(""); setEmail(""); setPhone(""); setNotes(""); setError(null);
@@ -42,7 +42,7 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
       reset();
       onCreated();
     } catch (err) {
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
