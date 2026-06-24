@@ -5,16 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { authApi, meApi } from "@/lib/api";
 import { setSession, setToken } from "@/lib/auth";
 import { roleHome } from "@/hooks/useAuth";
+import ErrorBox from "@/components/ErrorBox";
 
 function MagicExchange() {
   const router = useRouter();
   const params = useSearchParams();
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const token = params.get("token");
     if (!token) {
-      setError("Link không hợp lệ.");
+      setError(new Error("Link không hợp lệ."));
       return;
     }
     authApi
@@ -26,30 +27,43 @@ function MagicExchange() {
         router.replace(roleHome(user.role));
       })
       .catch((err) => {
-        setError(
-          err instanceof Error ? err.message : "Link hết hạn hoặc đã dùng.",
-        );
+        setError(err instanceof Error ? err : new Error("Link hết hạn hoặc đã dùng."));
       });
   }, []);
 
   if (error) {
     return (
-      <>
-        <p className="text-red-500 mb-4">{error}</p>
-        <a href="/login" className="text-sm text-stone-600 underline">
+      <div className="flex flex-col gap-4">
+        <ErrorBox error={error} />
+        <a
+          href="/login"
+          className="text-sm text-center underline underline-offset-2"
+          style={{ color: "var(--warm-gray)" }}
+        >
           Quay lại đăng nhập
         </a>
-      </>
+      </div>
     );
   }
 
-  return <p className="text-stone-500 text-sm">Đang xác thực...</p>;
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--sand)", borderTopColor: "var(--accent)" }} />
+      <p className="text-sm" style={{ color: "var(--warm-gray)" }}>Đang xác thực...</p>
+    </div>
+  );
 }
 
 export default function MagicPage() {
   return (
-    <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-stone-200 p-8 text-center">
-      <Suspense fallback={<p className="text-stone-500 text-sm">Đang tải...</p>}>
+    <div
+      className="w-full max-w-sm rounded-2xl border p-8"
+      style={{ background: "var(--white)", borderColor: "var(--sand)" }}
+    >
+      <div className="text-sm font-semibold mb-6 text-center" style={{ color: "var(--charcoal)" }}>
+        FORM Pilates
+      </div>
+      <Suspense fallback={<p className="text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</p>}>
         <MagicExchange />
       </Suspense>
     </div>
