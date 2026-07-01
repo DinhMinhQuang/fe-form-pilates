@@ -6,6 +6,7 @@ import { adminBookingApi } from "@/lib/api";
 import type { Booking } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
+import Btn from "@/components/Btn";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
   booked:             { label: "Đã đặt",  bg: "#EAF5EA", color: "#2E6B2E" },
@@ -15,7 +16,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
 };
 
 export default function AdminBookingsPage() {
-  const { data: bookings, isLoading, error, mutate } = useSWR("/admin/bookings", adminBookingApi.list);
+  const { data: bookings, isLoading, error, mutate } = useSWR("/admin/bookings", () => adminBookingApi.list());
   const [cancelling, setCancelling] = useState<string | null>(null);
 
   async function handleCancel(bookingId: string) {
@@ -78,14 +79,9 @@ export default function AdminBookingsPage() {
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     {cancellable && (
-                      <button
-                        disabled={cancelling === b.id}
-                        className="text-xs opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-40"
-                        style={{ color: "#B94B4B" }}
-                        onClick={() => handleCancel(b.id)}
-                      >
+                      <Btn variant="danger" size="sm" className="opacity-0 group-hover:opacity-100" disabled={cancelling === b.id} onClick={() => handleCancel(b.id)}>
                         {cancelling === b.id ? "Đang huỷ..." : "Huỷ"}
-                      </button>
+                      </Btn>
                     )}
                   </td>
                 </tr>

@@ -5,6 +5,7 @@ import { adminHaravanApi } from "@/lib/api";
 import type { HaravanProductMapping } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
+import Btn from "@/components/Btn";
 
 export default function AdminHaravanPage() {
   const { data: mappings, isLoading, error, mutate } = useSWR("/admin/haravan/product-mappings", adminHaravanApi.listMappings);
@@ -52,13 +53,9 @@ export default function AdminHaravanPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <button
-                    className="text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "var(--warm-gray)" }}
-                    onClick={() => toggleActive(m)}
-                  >
+                  <Btn variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => toggleActive(m)}>
                     {m.active ? "Tắt" : "Bật"}
-                  </button>
+                  </Btn>
                 </td>
               </tr>
             ))}

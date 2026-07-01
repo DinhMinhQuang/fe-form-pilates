@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
 import ErrorBox from "@/components/ErrorBox";
+import Btn from "@/components/Btn";
 import { adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
@@ -157,20 +158,10 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
         {error && <ErrorBox error={error} />}
 
         <div className="flex gap-2 pt-1">
-          <button
-            type="button" onClick={handleClose}
-            className="flex-1 rounded-lg py-2.5 text-sm font-medium border"
-            style={{ borderColor: "var(--sand)", color: "var(--warm-gray)" }}
-          >
-            Huỷ
-          </button>
-          <button
-            type="submit" disabled={loading}
-            className="flex-1 rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
-            style={{ background: "var(--charcoal)", color: "var(--white)" }}
-          >
+          <Btn variant="ghost" className="flex-1" type="button" onClick={handleClose}>Huỷ</Btn>
+          <Btn variant="primary" className="flex-1" type="submit" disabled={loading}>
             {loading ? "Đang lưu..." : "Tạo buổi tập"}
-          </button>
+          </Btn>
         </div>
       </form>
     </Modal>

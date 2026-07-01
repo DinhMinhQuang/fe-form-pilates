@@ -1,28 +1,26 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="min-h-screen flex"
-      style={{ background: "var(--cream)" }}
-    >
-      {/* Left panel - branding */}
+    <div className="min-h-screen flex" style={{ background: "var(--cream)" }}>
+      {/* Left panel */}
       <div
-        className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 p-12"
-        style={{ background: "var(--charcoal)", color: "var(--white)" }}
+        className="hidden lg:flex flex-col justify-between w-[400px] flex-shrink-0 p-12"
+        style={{ background: "var(--olive)", color: "var(--white)" }}
       >
         <div>
-          <div className="text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "var(--warm-gray-light)" }}>
-            Studio Management
-          </div>
-          <div className="text-2xl font-semibold tracking-wide">FORM Pilates</div>
+          <img
+            src="/logo-full.svg"
+            alt="FORM Pilates"
+            style={{ width: 200, height: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }}
+          />
         </div>
         <div>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--warm-gray-light)" }}>
+          <p className="text-sm leading-relaxed italic" style={{ color: "var(--warm-gray-light)" }}>
             "Movement is medicine. Every session, every student, every moment — managed with intention."
           </p>
         </div>
       </div>
 
-      {/* Right panel - form */}
+      {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-8">
         {children}
       </div>

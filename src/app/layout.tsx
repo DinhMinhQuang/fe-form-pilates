@@ -7,6 +7,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 export const metadata: Metadata = {
   title: "FORM Pilates",
   description: "Hệ thống quản lý lịch học FORM Pilates",
+  icons: { icon: "/logo-icon.svg", shortcut: "/logo-icon.svg" },
 };
 
 export default function RootLayout({

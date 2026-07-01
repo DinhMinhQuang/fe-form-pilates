@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Modal from "@/components/Modal";
 import ErrorBox from "@/components/ErrorBox";
+import Btn from "@/components/Btn";
 import { adminStudentApi } from "@/lib/api";
 import type { CreditLot } from "@/types";
 
@@ -69,27 +70,13 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
               Điều chỉnh số buổi
             </label>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setDelta((d) => d - 1)}
-                className="w-9 h-9 rounded-lg border text-lg font-medium flex items-center justify-center transition-colors"
-                style={{ borderColor: "var(--sand)", color: "var(--charcoal)" }}
-              >
-                −
-              </button>
+              <Btn variant="ghost" type="button" className="w-9 h-9 !px-0 text-lg" onClick={() => setDelta((d) => d - 1)}>−</Btn>
               <div className="flex-1 text-center">
                 <span className="text-2xl font-semibold" style={{ color: delta >= 0 ? "#2E6B2E" : "#B94B4B" }}>
                   {delta >= 0 ? "+" : ""}{delta}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setDelta((d) => d + 1)}
-                className="w-9 h-9 rounded-lg border text-lg font-medium flex items-center justify-center transition-colors"
-                style={{ borderColor: "var(--sand)", color: "var(--charcoal)" }}
-              >
-                +
-              </button>
+              <Btn variant="ghost" type="button" className="w-9 h-9 !px-0 text-lg" onClick={() => setDelta((d) => d + 1)}>+</Btn>
             </div>
             <p className="text-xs text-center" style={{ color: "var(--warm-gray-light)" }}>
               {lot.sessions_remaining} → <span style={{ color: "var(--charcoal)", fontWeight: 500 }}>{preview}</span> buổi
@@ -132,20 +119,10 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
           {error && <ErrorBox error={error} />}
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button" onClick={onClose}
-              className="flex-1 rounded-lg py-2.5 text-sm font-medium border"
-              style={{ borderColor: "var(--sand)", color: "var(--warm-gray)" }}
-            >
-              Huỷ
-            </button>
-            <button
-              type="submit" disabled={loading || delta === 0 && expiresAt === lot.expires_at.slice(0, 10)}
-              className="flex-1 rounded-lg py-2.5 text-sm font-medium disabled:opacity-50"
-              style={{ background: "var(--charcoal)", color: "var(--white)" }}
-            >
+            <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Huỷ</Btn>
+            <Btn variant="primary" className="flex-1" type="submit" disabled={loading || (delta === 0 && expiresAt === lot.expires_at.slice(0, 10))}>
               {loading ? "Đang lưu..." : "Xác nhận"}
-            </button>
+            </Btn>
           </div>
         </form>
       )}

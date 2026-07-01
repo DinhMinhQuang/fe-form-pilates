@@ -6,6 +6,7 @@ import { adminTrainerApi } from "@/lib/api";
 import type { Trainer } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
+import Btn from "@/components/Btn";
 import CreateTrainerModal from "@/components/admin/CreateTrainerModal";
 import EditTrainerModal from "@/components/admin/EditTrainerModal";
 
@@ -21,13 +22,7 @@ export default function AdminTrainersPage() {
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Huấn luyện viên</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Đội ngũ huấn luyện viên của studio</p>
         </div>
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-          style={{ background: "var(--charcoal)", color: "var(--white)" }}
-          onClick={() => setShowCreate(true)}
-        >
-          + Thêm HLV
-        </button>
+        <Btn onClick={() => setShowCreate(true)}>+ Thêm HLV</Btn>
       </div>
 
       <CreateTrainerModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />
@@ -69,13 +64,7 @@ export default function AdminTrainersPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <button
-                    className="text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "var(--warm-gray)" }}
-                    onClick={() => setEditing(t)}
-                  >
-                    Sửa
-                  </button>
+                  <Btn variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => setEditing(t)}>Sửa</Btn>
                 </td>
               </tr>
             ))}
