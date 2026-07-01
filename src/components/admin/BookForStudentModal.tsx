@@ -5,6 +5,7 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
+import Btn from "@/components/Btn";
 import { adminStudentApi, studentApi } from "@/lib/api";
 import type { ClassSession } from "@/types";
 
@@ -75,14 +76,9 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
                       {s.capacity - s.booked_count}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        disabled={full || booking === s.id}
-                        onClick={() => handleBook(s.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-40 transition-opacity"
-                        style={{ background: "var(--charcoal)", color: "var(--white)" }}
-                      >
+                      <Btn size="sm" variant="primary" disabled={full || booking === s.id} onClick={() => handleBook(s.id)}>
                         {booking === s.id ? "..." : "Đặt"}
-                      </button>
+                      </Btn>
                     </td>
                   </tr>
                 );
@@ -91,13 +87,7 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
           </table>
         </div>
 
-        <button
-          type="button" onClick={onClose}
-          className="w-full rounded-lg py-2.5 text-sm font-medium border"
-          style={{ borderColor: "var(--sand)", color: "var(--warm-gray)" }}
-        >
-          Đóng
-        </button>
+        <Btn variant="ghost" className="w-full" type="button" onClick={onClose}>Đóng</Btn>
       </div>
     </Modal>
   );

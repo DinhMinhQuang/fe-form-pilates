@@ -9,6 +9,7 @@ import EmptyRow from "@/components/EmptyRow";
 import CreateStudentModal from "@/components/admin/CreateStudentModal";
 import EditStudentModal from "@/components/admin/EditStudentModal";
 import StudentDrawer from "@/components/admin/StudentDrawer";
+import Btn from "@/components/Btn";
 
 export default function AdminStudentsPage() {
   const { data: students, isLoading, error, mutate } = useSWR("/admin/students", adminStudentApi.list);
@@ -23,13 +24,7 @@ export default function AdminStudentsPage() {
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Học viên</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Danh sách học viên đang theo học</p>
         </div>
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-          style={{ background: "var(--charcoal)", color: "var(--white)" }}
-          onClick={() => setShowCreate(true)}
-        >
-          + Thêm học viên
-        </button>
+        <Btn onClick={() => setShowCreate(true)}>+ Thêm học viên</Btn>
       </div>
 
       <CreateStudentModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />
@@ -77,13 +72,7 @@ export default function AdminStudentsPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "var(--warm-gray)" }}
-                    onClick={() => setEditing(s)}
-                  >
-                    Sửa
-                  </button>
+                  <Btn variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => setEditing(s)}>Sửa</Btn>
                 </td>
               </tr>
             ))}

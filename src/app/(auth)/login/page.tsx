@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authApi, meApi } from "@/lib/api";
 import { setSession, setToken } from "@/lib/auth";
 import { roleHome } from "@/hooks/useAuth";
+import Btn from "@/components/Btn";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,12 +35,7 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       {/* Mobile logo */}
       <div className="lg:hidden mb-8">
-        <div className="text-xs tracking-[0.25em] uppercase mb-1" style={{ color: "var(--warm-gray)" }}>
-          Studio Management
-        </div>
-        <div className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>
-          FORM Pilates
-        </div>
+        <img src="/logo-full.svg" alt="FORM Pilates" style={{ width: 160, height: "auto", opacity: 0.85 }} />
       </div>
 
       <div
@@ -102,14 +98,9 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg py-2.5 text-sm font-medium transition-opacity disabled:opacity-50 mt-1"
-            style={{ background: "var(--charcoal)", color: "var(--white)" }}
-          >
+          <Btn type="submit" disabled={loading} className="w-full mt-1 !bg-[var(--olive)] hover:!bg-[var(--charcoal)]">
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
+          </Btn>
         </form>
 
         <p className="mt-6 text-xs text-center" style={{ color: "var(--warm-gray-light)" }}>

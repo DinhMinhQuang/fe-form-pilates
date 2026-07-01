@@ -7,6 +7,7 @@ import type { ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import CreateSessionModal from "@/components/admin/CreateSessionModal";
+import Btn from "@/components/Btn";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
   scheduled:  { label: "Sắp diễn ra", bg: "#EAF5EA", color: "#2E6B2E" },
@@ -15,7 +16,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
 };
 
 export default function AdminSessionsPage() {
-  const { data: sessions, isLoading, error, mutate } = useSWR("/admin/sessions", adminSessionApi.list);
+  const { data: sessions, isLoading, error, mutate } = useSWR("/admin/sessions", () => adminSessionApi.list());
   const [showCreate, setShowCreate] = useState(false);
 
   return (
@@ -25,13 +26,7 @@ export default function AdminSessionsPage() {
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Lịch học</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Quản lý các buổi tập của studio</p>
         </div>
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-          style={{ background: "var(--charcoal)", color: "var(--white)" }}
-          onClick={() => setShowCreate(true)}
-        >
-          + Thêm buổi tập
-        </button>
+        <Btn onClick={() => setShowCreate(true)}>+ Thêm buổi tập</Btn>
       </div>
 
       <CreateSessionModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />

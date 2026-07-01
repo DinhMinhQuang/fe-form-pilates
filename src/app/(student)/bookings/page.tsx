@@ -5,13 +5,13 @@ import useSWR from "swr";
 import { studentApi } from "@/lib/api";
 import type { Booking } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
-import EmptyRow from "@/components/EmptyRow";
+import Btn from "@/components/Btn";
 
-const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
-  booked:             { label: "Đã đặt",  bg: "#EAF5EA", color: "#2E6B2E" },
-  attended:           { label: "Đã học",  bg: "#EEF2FF", color: "#3730A3" },
-  cancelled_refunded: { label: "Đã huỷ",  bg: "#FBF0F0", color: "#B94B4B" },
-  no_show:            { label: "Vắng",    bg: "#FEF9E7", color: "#7A5C00" },
+const STATUS: Record<string, { label: string; dot: string }> = {
+  booked:             { label: "Đã đặt",  dot: "#2E6B2E" },
+  attended:           { label: "Đã học",  dot: "#3730A3" },
+  cancelled_refunded: { label: "Đã huỷ",  dot: "#B94B4B" },
+  no_show:            { label: "Vắng",    dot: "#7A5C00" },
 };
 
 export default function BookingsPage() {
@@ -19,11 +19,11 @@ export default function BookingsPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<Error | null>(null);
 
-  async function handleCancel(bookingId: string) {
-    setCancelling(bookingId);
+  async function handleCancel(id: string) {
+    setCancelling(id);
     setCancelError(null);
     try {
-      await studentApi.cancel(bookingId);
+      await studentApi.cancel(id);
       mutate();
     } catch (err) {
       setCancelError(err instanceof Error ? err : new Error(String(err)));
@@ -32,64 +32,97 @@ export default function BookingsPage() {
     }
   }
 
+  const upcoming = bookings?.filter((b) => b.status === "booked") ?? [];
+  const past = bookings?.filter((b) => b.status !== "booked") ?? [];
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Đặt chỗ của tôi</h1>
-        <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Lịch sử và các buổi sắp tới</p>
+    <div className="max-w-2xl">
+      <div className="mb-7">
+        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--charcoal)" }}>Đặt chỗ của tôi</h1>
+        <p className="text-sm mt-1" style={{ color: "var(--warm-gray)" }}>Các buổi sắp tới và lịch sử</p>
       </div>
 
       {cancelError && <div className="mb-4"><ErrorBox error={cancelError} /></div>}
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
-              <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Buổi tập</th>
-              <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Thời gian</th>
-              <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Trạng thái</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={4} className="px-5 py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
-            ) : !bookings?.length ? (
-              <EmptyRow colSpan={4} message="Chưa có đặt chỗ nào" />
-            ) : bookings.map((b: Booking) => {
-              const status = STATUS_MAP[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
-              return (
-                <tr key={b.id} style={{ borderBottom: "1px solid var(--cream-dark)" }} className="group">
-                  <td className="px-5 py-3.5">
-                    <div className="font-medium" style={{ color: "var(--charcoal)" }}>{b.class_type_name}</div>
-                    {b.trainer_name && <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray-light)" }}>{b.trainer_name} · {b.branch_name}</div>}
-                  </td>
-                  <td className="px-5 py-3.5 text-xs" style={{ color: "var(--warm-gray)" }}>
-                    {new Date(b.session_start_at).toLocaleString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: status.bg, color: status.color }}>
-                      {status.label}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    {b.status === "booked" && (
-                      <button
-                        disabled={cancelling === b.id}
-                        onClick={() => handleCancel(b.id)}
-                        className="text-xs opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-40"
-                        style={{ color: "#B94B4B" }}
-                      >
-                        {cancelling === b.id ? "Đang huỷ..." : "Huỷ"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {isLoading ? (
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "var(--cream-dark)" }} />)}
+        </div>
+      ) : !bookings?.length ? (
+        <div className="rounded-2xl border py-16 text-center text-sm" style={{ borderColor: "var(--sand)", background: "var(--white)", color: "var(--warm-gray)" }}>
+          Chưa có đặt chỗ nào
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {upcoming.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--accent)" }}>Sắp tới</span>
+                <div className="flex-1 h-px" style={{ background: "var(--sand)" }} />
+              </div>
+              <div className="flex flex-col gap-2">
+                {upcoming.map((b: Booking) => <BookingCard key={b.id} booking={b} onCancel={handleCancel} cancelling={cancelling} />)}
+              </div>
+            </section>
+          )}
+          {past.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--warm-gray)" }}>Lịch sử</span>
+                <div className="flex-1 h-px" style={{ background: "var(--sand)" }} />
+              </div>
+              <div className="flex flex-col gap-2">
+                {past.map((b: Booking) => <BookingCard key={b.id} booking={b} onCancel={handleCancel} cancelling={cancelling} />)}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BookingCard({ booking: b, onCancel, cancelling }: {
+  booking: Booking;
+  onCancel: (id: string) => void;
+  cancelling: string | null;
+}) {
+  const st = STATUS[b.status] ?? { label: b.status, dot: "var(--warm-gray)" };
+  const start = new Date(b.session_start_at);
+  return (
+    <div className="rounded-2xl border flex items-center gap-4 px-5 py-4" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+      {/* Date */}
+      <div className="flex-shrink-0 text-center w-12">
+        <div className="text-base font-semibold leading-tight" style={{ color: "var(--charcoal)" }}>{start.getDate()}</div>
+        <div className="text-xs uppercase mt-0.5" style={{ color: "var(--warm-gray-light)" }}>
+          {start.toLocaleDateString("vi-VN", { month: "short" })}
+        </div>
+      </div>
+
+      <div className="self-stretch w-px" style={{ background: "var(--sand)" }} />
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm mb-1" style={{ color: "var(--charcoal)" }}>{b.class_type_name}</div>
+        <div className="text-xs" style={{ color: "var(--warm-gray)" }}>
+          {start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+          {b.trainer_name && <> · {b.trainer_name}</>}
+          {b.branch_name && <> · {b.branch_name}</>}
+        </div>
+      </div>
+
+      {/* Status + cancel */}
+      <div className="flex-shrink-0 flex flex-col items-end gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
+          <span className="text-xs" style={{ color: "var(--warm-gray)" }}>{st.label}</span>
+        </div>
+        {b.status === "booked" && (
+          <Btn variant="danger" size="sm" disabled={cancelling === b.id} onClick={() => onCancel(b.id)}>
+            {cancelling === b.id ? "..." : "Huỷ"}
+          </Btn>
+        )}
       </div>
     </div>
   );

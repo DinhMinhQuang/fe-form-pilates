@@ -1,28 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { studentApi, catalogApi } from "@/lib/api";
-import type { ClassSession, Branch } from "@/types";
+import { studentApi } from "@/lib/api";
+import type { ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
+import Btn from "@/components/Btn";
 
-const CATEGORY_LABEL: Record<string, string> = {
-  group_reformer: "Reformer nhóm",
-  group_mat: "Mat nhóm",
-  private: "Cá nhân",
-  duo: "Duo",
-};
+const DAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const DAY_LONG  = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+
+function getWeekDays(weekOffset: number): Date[] {
+  const now = new Date();
+  const dow = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function fmt(d: Date) {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
 export default function SchedulePage() {
-  const [branchId, setBranchId] = useState("");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<number>(() => {
+    const d = new Date().getDay();
+    return d === 0 ? 6 : d - 1; // 0=Mon … 6=Sun
+  });
+  const [classFilter, setClassFilter] = useState("");
   const [booking, setBooking] = useState<string | null>(null);
   const [bookError, setBookError] = useState<Error | null>(null);
 
-  const { data: branches } = useSWR("/branches", catalogApi.branches);
+  const days = useMemo(() => getWeekDays(weekOffset), [weekOffset]);
+  const from = days[0].toISOString();
+  const to   = new Date(days[6].getTime() + 86400000).toISOString();
+
   const { data: sessions, isLoading, error, mutate } = useSWR(
-    ["/sessions", branchId],
-    () => studentApi.sessions(branchId || undefined),
+    ["/sessions", from, to],
+    () => studentApi.sessions({ from, to }),
   );
+
+  // Unique class type names
+  const classTypes = useMemo(() => {
+    if (!sessions) return [];
+    return [...new Set(sessions.map((s) => s.class_type_name))].sort();
+  }, [sessions]);
+
+  // Filter sessions for selected day + class type
+  const todaySessions = useMemo(() => {
+    if (!sessions) return [];
+    const day = days[selectedDay];
+    return sessions.filter((s) => {
+      const start = new Date(s.start_at);
+      if (!sameDay(start, day)) return false;
+      if (classFilter && s.class_type_name !== classFilter) return false;
+      return true;
+    });
+  }, [sessions, days, selectedDay, classFilter]);
+
+  const now = new Date();
 
   async function handleBook(sessionId: string) {
     setBooking(sessionId);
@@ -39,98 +85,223 @@ export default function SchedulePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Lịch học</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Chọn buổi tập và đặt chỗ</p>
-        </div>
-        {branches && branches.length > 1 && (
-          <select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className="text-sm rounded-lg px-3 py-2 border outline-none"
-            style={{ borderColor: "var(--sand)", background: "var(--white)", color: "var(--charcoal)" }}
-          >
-            <option value="">Tất cả chi nhánh</option>
-            {branches.map((b: Branch) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        )}
+      {/* Page title */}
+      <div className="mb-8 text-center">
+        <h1 className="text-2xl font-semibold tracking-widest uppercase" style={{ color: "var(--charcoal)" }}>
+          Lịch học
+        </h1>
+        <p className="text-xs mt-1 tracking-wide uppercase" style={{ color: "var(--warm-gray)" }}>
+          Chọn buổi và đặt chỗ ngay
+        </p>
       </div>
+
+      {/* Week navigation */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <button
+          className="text-xs font-semibold tracking-widest uppercase transition-colors"
+          style={{ color: "var(--warm-gray)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--charcoal)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--warm-gray)")}
+          onClick={() => setWeekOffset((w) => w - 1)}
+        >
+          ← Tuần trước
+        </button>
+        <span className="text-xs tracking-wide" style={{ color: "var(--warm-gray-light)" }}>
+          {fmt(days[0])} – {fmt(days[6])}
+        </span>
+        <button
+          className="text-xs font-semibold tracking-widest uppercase transition-colors"
+          style={{ color: "var(--warm-gray)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--charcoal)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--warm-gray)")}
+          onClick={() => setWeekOffset((w) => w + 1)}
+        >
+          Tuần sau →
+        </button>
+      </div>
+
+      {/* Day tabs */}
+      <div className="grid grid-cols-7 border-b mb-6" style={{ borderColor: "var(--sand)" }}>
+        {days.map((d, i) => {
+          const isToday = sameDay(d, new Date());
+          const active = selectedDay === i;
+          return (
+            <button
+              key={i}
+              onClick={() => setSelectedDay(i)}
+              className="flex flex-col items-center py-3 text-center transition-colors"
+              style={{
+                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+                color: active ? "var(--accent)" : isToday ? "var(--charcoal)" : "var(--warm-gray)",
+              }}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wide">{DAY_SHORT[i === 6 ? 0 : i + 1]}</span>
+              <span className="text-xs mt-0.5">{fmt(d)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Class type filter */}
+      {classTypes.length > 1 && (
+        <div className="flex gap-2 flex-wrap mb-6">
+          <button
+            onClick={() => setClassFilter("")}
+            className="px-4 py-1.5 text-xs font-semibold uppercase tracking-widest border transition-colors"
+            style={{
+              borderColor: classFilter === "" ? "var(--charcoal)" : "var(--sand)",
+              color: classFilter === "" ? "var(--white)" : "var(--warm-gray)",
+              background: classFilter === "" ? "var(--charcoal)" : "transparent",
+            }}
+          >
+            Tất cả
+          </button>
+          {classTypes.map((ct) => (
+            <button
+              key={ct}
+              onClick={() => setClassFilter(ct === classFilter ? "" : ct)}
+              className="px-4 py-1.5 text-xs font-semibold uppercase tracking-widest border transition-colors"
+              style={{
+                borderColor: classFilter === ct ? "var(--charcoal)" : "var(--sand)",
+                color: classFilter === ct ? "var(--white)" : "var(--warm-gray)",
+                background: classFilter === ct ? "var(--charcoal)" : "transparent",
+              }}
+            >
+              {ct}
+            </button>
+          ))}
+        </div>
+      )}
 
       {bookError && <div className="mb-4"><ErrorBox error={bookError} /></div>}
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
 
-      {isLoading ? (
-        <p className="text-sm" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</p>
-      ) : !sessions?.length ? (
-        <div className="rounded-xl border py-12 text-center text-sm" style={{ borderColor: "var(--sand)", background: "var(--white)", color: "var(--warm-gray-light)" }}>
-          Không có buổi học nào trong thời gian tới
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {sessions.map((s: ClassSession) => {
-            const full = s.booked_count >= s.capacity;
-            const start = new Date(s.start_at);
-            const end = new Date(s.end_at);
-            return (
-              <div
-                key={s.id}
-                className="rounded-xl border px-5 py-4 flex items-center gap-5"
-                style={{ background: "var(--white)", borderColor: "var(--sand)" }}
-              >
-                {/* Date column */}
-                <div className="flex-shrink-0 w-12 text-center">
-                  <div className="text-lg font-semibold leading-none" style={{ color: "var(--charcoal)" }}>
-                    {start.getDate()}
-                  </div>
-                  <div className="text-xs mt-0.5 uppercase" style={{ color: "var(--warm-gray-light)" }}>
-                    {start.toLocaleDateString("vi-VN", { month: "short" })}
-                  </div>
+      {/* Session list */}
+      <div style={{ borderTop: "1px solid var(--sand)" }}>
+        {isLoading ? (
+          <div className="flex flex-col">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="py-6 border-b animate-pulse flex justify-between" style={{ borderColor: "var(--sand)" }}>
+                <div className="flex flex-col gap-2">
+                  <div className="h-4 w-48 rounded" style={{ background: "var(--cream-dark)" }} />
+                  <div className="h-3 w-32 rounded" style={{ background: "var(--cream-dark)" }} />
                 </div>
+                <div className="h-8 w-20 rounded" style={{ background: "var(--cream-dark)" }} />
+              </div>
+            ))}
+          </div>
+        ) : !todaySessions.length ? (
+          <div className="py-16 text-center">
+            <p className="text-sm tracking-wide" style={{ color: "var(--warm-gray-light)" }}>
+              Không có buổi học nào trong ngày này
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 pt-2">
+            {todaySessions.map((s: ClassSession) => {
+              const start = new Date(s.start_at);
+              const end   = new Date(s.end_at);
+              const passed = start < now;
+              const full   = s.booked_count >= s.capacity;
+              const durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
+              const isBooking = booking === s.id;
 
-                <div className="w-px self-stretch" style={{ background: "var(--sand)" }} />
+              const dayLabel = start.toLocaleDateString("vi-VN", { weekday: "long" });
+              const dateLabel = `${String(start.getDate()).padStart(2,"0")}/${String(start.getMonth()+1).padStart(2,"0")}`;
+              const timeStart = start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+              const timeEnd   = end.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-medium" style={{ color: "var(--charcoal)" }}>{s.class_type_name}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--cream-dark)", color: "var(--warm-gray)" }}>
-                      {CATEGORY_LABEL[s.class_type_name] ?? s.class_type_name}
-                    </span>
+              return (
+                <div
+                  key={s.id}
+                  className="relative rounded-xl p-4"
+                  style={{
+                    background: "var(--white)",
+                    border: "1px solid var(--sand)",
+                    opacity: passed ? 0.65 : 1,
+                  }}
+                >
+                  {/* Status badge — top right */}
+                  <div className="absolute top-4 right-4">
+                    {passed ? (
+                      <span
+                        className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5 border"
+                        style={{ color: "var(--warm-gray)", borderColor: "var(--sand)", fontSize: 10 }}
+                      >
+                        Đã qua
+                      </span>
+                    ) : full ? (
+                      <span
+                        className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5"
+                        style={{ color: "#B94B4B", background: "#FBF0F0", fontSize: 10 }}
+                      >
+                        Hết chỗ
+                      </span>
+                    ) : (
+                      <span
+                        className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5"
+                        style={{ color: "var(--white)", background: "var(--accent)", fontSize: 10 }}
+                      >
+                        {s.capacity - s.booked_count} chỗ
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs" style={{ color: "var(--warm-gray)" }}>
-                    {start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                    {" – "}
-                    {end.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                    {s.trainer_name && <> · {s.trainer_name}</>}
-                    {" · "}{s.branch_name}
-                  </div>
-                </div>
 
-                {/* Slots + book */}
-                <div className="flex-shrink-0 flex items-center gap-3">
-                  <span className="text-xs" style={{ color: full ? "#B94B4B" : "var(--warm-gray-light)" }}>
-                    {s.capacity - s.booked_count} chỗ
-                  </span>
-                  <button
-                    disabled={full || booking === s.id}
-                    onClick={() => handleBook(s.id)}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium transition-opacity disabled:opacity-40"
+                  {/* Class name */}
+                  <div
+                    className="font-bold uppercase pr-20 mb-2"
                     style={{
-                      background: full ? "var(--cream-dark)" : "var(--charcoal)",
-                      color: full ? "var(--warm-gray)" : "var(--white)",
+                      color: passed ? "var(--warm-gray)" : "var(--charcoal)",
+                      fontSize: 13,
+                      letterSpacing: "0.08em",
+                      lineHeight: 1.3,
                     }}
                   >
-                    {booking === s.id ? "Đang đặt..." : full ? "Hết chỗ" : "Đặt chỗ"}
-                  </button>
+                    {s.class_type_name}
+                  </div>
+
+                  {/* Trainer */}
+                  {s.trainer_name && (
+                    <div className="text-xs mb-1" style={{ color: "var(--warm-gray)" }}>
+                      với <strong style={{ color: "var(--charcoal)" }}>{s.trainer_name}</strong>
+                    </div>
+                  )}
+
+                  {/* Branch */}
+                  <div className="text-xs mb-1" style={{ color: "var(--warm-gray)" }}>
+                    {s.branch_name}
+                  </div>
+
+                  {/* Date & time */}
+                  <div className="text-xs mb-1" style={{ color: "var(--warm-gray)" }}>
+                    vào <strong style={{ color: "var(--charcoal)" }}>{dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}, {dateLabel}</strong> lúc <strong style={{ color: "var(--charcoal)" }}>{timeStart}</strong>
+                  </div>
+
+                  {/* Duration */}
+                  <div className="text-xs" style={{ color: "var(--warm-gray)" }}>
+                    Thời lượng: <strong style={{ color: "var(--charcoal)" }}>{durationMin} phút · {timeStart} – {timeEnd}</strong>
+                  </div>
+
+                  {/* Book button */}
+                  {!passed && !full && (
+                    <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--cream-dark)" }}>
+                      <Btn
+                        variant="accent"
+                        size="sm"
+                        disabled={isBooking}
+                        onClick={() => handleBook(s.id)}
+                        className="w-full tracking-widest uppercase"
+                      >
+                        {isBooking ? "Đang đặt..." : "Đặt chỗ"}
+                      </Btn>
+                    </div>
+                  )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

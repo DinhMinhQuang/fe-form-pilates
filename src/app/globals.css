@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --cream: #F5F1EC;
-  --cream-dark: #EDE8E1;
-  --charcoal: #1C1C1C;
-  --charcoal-soft: #2E2E2E;
-  --warm-gray: #7A7066;
-  --warm-gray-light: #AFA89E;
-  --sand: #D8CFC4;
-  --sand-light: #EDE8E1;
-  --accent: #C4906A;
-  --accent-dark: #A87452;
-  --white: #FFFFFF;
+  /* FORM Pilates official brand palette */
+  --charcoal:        #252420;   /* deepest brand dark */
+  --charcoal-soft:   #3A3830;   /* sidebar border / hover */
+  --olive:           #484A3A;   /* dark olive — sidebar bg */
+  --cream:           #E3DFD8;   /* main background */
+  --cream-dark:      #D4CFC7;   /* card hover / inner bg */
+  --sand:            #C3B8A7;   /* borders */
+  --taupe:           #C3B8A7;   /* alias */
+  --warm-gray:       #8A8378;   /* secondary text */
+  --warm-gray-light: #B5AEA5;   /* muted text / icons */
+  --accent:          #8B4E29;   /* terracotta — CTA */
+  --accent-dark:     #6B3A1F;   /* terracotta hover */
+  --white:           #FFFFFF;
 }
 
 @theme inline {
@@ -26,4 +28,33 @@ body {
   color: var(--charcoal);
   font-family: var(--font-geist-sans), 'Inter', Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-content {
+  animation: fadeUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
 }

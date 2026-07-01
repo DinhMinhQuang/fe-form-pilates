@@ -19,20 +19,15 @@ export interface AppUser {
   status: "active" | "disabled";
 }
 
-export interface StudentProfile extends AppUser {
-  haravan_customer_id: string | null;
-  notes: string | null;
-}
-
 // ─── Catalog ──────────────────────────────────────────────────────────────────
 
 export interface Branch {
   id: string;
   code: string;
   name: string;
-  address: string;
   timezone: string;
   status: "active" | "disabled";
+  class_type_ids: string[];
 }
 
 export type ClassCategory = "group_reformer" | "group_mat" | "private" | "duo";
@@ -46,6 +41,7 @@ export interface ClassType {
   level: string;
   default_capacity: number;
   status: "active" | "disabled";
+  branch_ids: string[];
 }
 
 // ─── Package ──────────────────────────────────────────────────────────────────
@@ -55,8 +51,9 @@ export interface CoursePackage {
   code: string;
   name: string;
   sessions: number;
-  validity_months: number;
+  validity_days: number;
   status: "active" | "disabled";
+  class_type_ids: string[];
 }
 
 // ─── Session ──────────────────────────────────────────────────────────────────
@@ -118,27 +115,37 @@ export interface Booking {
   student_name: string;
   student_phone: string | null;
   status: BookingStatus;
-  channel: "student" | "admin";
+  channel: string;
   booked_at: string;
   cancelled_at: string | null;
+  cancellable?: boolean;
 }
 
-// ─── Admin ────────────────────────────────────────────────────────────────────
+// ─── Trainer ──────────────────────────────────────────────────────────────────
 
 export interface Trainer extends AppUser {
   role: "trainer";
+  last_login_at?: string | null;
 }
+
+// ─── Student ──────────────────────────────────────────────────────────────────
 
 export interface Student extends AppUser {
   role: "student";
-  haravan_customer_id: string | null;
-  notes: string | null;
+  credits: number;
 }
 
-export interface StudentDetail extends Student {
-  credits: CreditSummary;
-  recent_bookings: Booking[];
+export interface StudentDetail {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  status: "active" | "disabled";
+  notes: string | null;
+  credits: number;
 }
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
 
 export interface HaravanProductMapping {
   id: string;
@@ -151,19 +158,15 @@ export interface HaravanProductMapping {
   active: boolean;
 }
 
-// ─── API responses ────────────────────────────────────────────────────────────
+// ─── API body types ───────────────────────────────────────────────────────────
 
 export interface ApiError {
   error: string;
   message?: string;
 }
 
-export interface BookResponse {
-  booking_id: string;
-}
-
 export interface AdjustCreditBody {
-  delta: number;
+  delta?: number;
   expires_at?: string;
   reason: string;
 }
@@ -180,7 +183,7 @@ export interface CreateSessionBody {
 export interface CreateTrainerBody {
   full_name: string;
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
 }
 
