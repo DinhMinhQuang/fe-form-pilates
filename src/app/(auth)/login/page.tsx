@@ -6,6 +6,7 @@ import { authApi, meApi } from "@/lib/api";
 import { setSession, setToken } from "@/lib/auth";
 import { roleHome } from "@/hooks/useAuth";
 import Btn from "@/components/Btn";
+import FormError from "@/components/FormError";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +18,20 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+
+    if (!email.trim()) {
+      setError("Vui lòng nhập email");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Email không hợp lệ");
+      return;
+    }
+    if (!password) {
+      setError("Vui lòng nhập mật khẩu");
+      return;
+    }
+
     setLoading(true);
     try {
       const { access_token } = await authApi.staffLogin(email, password);
@@ -49,7 +64,7 @@ export default function LoginPage() {
           Dành cho nhân viên & huấn luyện viên
         </p>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+        <form onSubmit={handleLogin} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium tracking-wide uppercase" style={{ color: "var(--warm-gray)" }}>
               Email
@@ -59,13 +74,8 @@ export default function LoginPage() {
               placeholder="ten@formstudio.vn"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               className="rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors"
-              style={{
-                borderColor: "var(--sand)",
-                background: "var(--cream)",
-                color: "var(--charcoal)",
-              }}
+              style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" }}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             />
@@ -80,23 +90,14 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               className="rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors"
-              style={{
-                borderColor: "var(--sand)",
-                background: "var(--cream)",
-                color: "var(--charcoal)",
-              }}
+              style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" }}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             />
           </div>
 
-          {error && (
-            <p className="text-sm px-3 py-2 rounded-lg" style={{ color: "#B94B4B", background: "#FBF0F0" }}>
-              {error}
-            </p>
-          )}
+          <FormError error={error} />
 
           <Btn type="submit" disabled={loading} className="w-full mt-1 !bg-[var(--olive)] hover:!bg-[var(--charcoal)]">
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}

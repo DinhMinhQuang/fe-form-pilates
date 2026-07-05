@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Modal from "@/components/Modal";
-import ErrorBox from "@/components/ErrorBox";
+import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import { adminStudentApi } from "@/lib/api";
 
@@ -31,6 +31,16 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!fullName.trim()) {
+      setError(new Error("Vui lòng nhập họ tên"));
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError(new Error("Email không hợp lệ"));
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
@@ -51,18 +61,15 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
 
   return (
     <Modal title="Thêm học viên" open={open} onClose={handleClose}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Họ tên <span style={{ color: "var(--accent)" }}>*</span>
           </label>
           <input
-            className={inputClass}
-            style={inputStyle}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            className={inputClass} style={inputStyle}
+            value={fullName} onChange={(e) => setFullName(e.target.value)}
             placeholder="Nguyễn Thị A"
-            required
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
           />
@@ -73,11 +80,8 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
             Email
           </label>
           <input
-            type="email"
-            className={inputClass}
-            style={inputStyle}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="email" className={inputClass} style={inputStyle}
+            value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="a@example.com"
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
@@ -89,11 +93,8 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
             Số điện thoại
           </label>
           <input
-            type="tel"
-            className={inputClass}
-            style={inputStyle}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            type="tel" className={inputClass} style={inputStyle}
+            value={phone} onChange={(e) => setPhone(e.target.value)}
             placeholder="0901234567"
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
@@ -105,18 +106,15 @@ export default function CreateStudentModal({ open, onClose, onCreated }: Props) 
             Ghi chú
           </label>
           <textarea
-            className={inputClass}
-            style={{ ...inputStyle, resize: "none" }}
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            className={inputClass} style={{ ...inputStyle, resize: "none" }}
+            rows={2} value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi chú nội bộ..."
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
           />
         </div>
 
-        {error && <ErrorBox error={error} />}
+        <FormError error={error} />
 
         <div className="flex gap-2 pt-1">
           <Btn variant="ghost" className="flex-1" type="button" onClick={handleClose}>Huỷ</Btn>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
-import ErrorBox from "@/components/ErrorBox";
+import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import { adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
 
@@ -39,6 +39,36 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!branchId) {
+      setError(new Error("Vui lòng chọn chi nhánh"));
+      return;
+    }
+    if (!classTypeId) {
+      setError(new Error("Vui lòng chọn loại lớp"));
+      return;
+    }
+    if (!trainerId) {
+      setError(new Error("Vui lòng chọn huấn luyện viên"));
+      return;
+    }
+    if (!startAt) {
+      setError(new Error("Vui lòng chọn thời gian bắt đầu"));
+      return;
+    }
+    if (!endAt) {
+      setError(new Error("Vui lòng chọn thời gian kết thúc"));
+      return;
+    }
+    if (new Date(endAt) <= new Date(startAt)) {
+      setError(new Error("Thời gian kết thúc phải sau thời gian bắt đầu"));
+      return;
+    }
+    if (capacity < 1) {
+      setError(new Error("Sức chứa phải ít nhất 1 người"));
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
@@ -63,7 +93,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
 
   return (
     <Modal title="Thêm buổi tập" open={open} onClose={handleClose}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
@@ -71,7 +101,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <select
               className={inputClass} style={selectStyle}
-              value={branchId} onChange={(e) => setBranchId(e.target.value)} required
+              value={branchId} onChange={(e) => setBranchId(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             >
@@ -88,7 +118,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <select
               className={inputClass} style={selectStyle}
-              value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)} required
+              value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             >
@@ -106,7 +136,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
           </label>
           <select
             className={inputClass} style={selectStyle}
-            value={trainerId} onChange={(e) => setTrainerId(e.target.value)} required
+            value={trainerId} onChange={(e) => setTrainerId(e.target.value)}
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
           >
@@ -124,7 +154,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <input
               type="datetime-local" className={inputClass} style={inputStyle}
-              value={startAt} onChange={(e) => setStartAt(e.target.value)} required
+              value={startAt} onChange={(e) => setStartAt(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             />
@@ -135,7 +165,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <input
               type="datetime-local" className={inputClass} style={inputStyle}
-              value={endAt} onChange={(e) => setEndAt(e.target.value)} required
+              value={endAt} onChange={(e) => setEndAt(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             />
@@ -149,13 +179,13 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
           <input
             type="number" min={1} max={100}
             className={inputClass} style={inputStyle}
-            value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} required
+            value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
           />
         </div>
 
-        {error && <ErrorBox error={error} />}
+        <FormError error={error} />
 
         <div className="flex gap-2 pt-1">
           <Btn variant="ghost" className="flex-1" type="button" onClick={handleClose}>Huỷ</Btn>
