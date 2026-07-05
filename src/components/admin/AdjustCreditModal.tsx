@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/Modal";
-import ErrorBox from "@/components/ErrorBox";
+import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import { adminStudentApi } from "@/lib/api";
 import type { CreditLot } from "@/types";
@@ -36,6 +36,12 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!lot) return;
+
+    if (!reason.trim()) {
+      setError(new Error("Vui lòng nhập lý do điều chỉnh"));
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
@@ -57,7 +63,7 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
   return (
     <Modal title="Điều chỉnh gói tập" open={!!lot} onClose={onClose}>
       {lot && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           {/* Package info */}
           <div className="rounded-lg px-4 py-3" style={{ background: "var(--cream)", borderRadius: 10 }}>
             <div className="text-xs mb-0.5" style={{ color: "var(--warm-gray)" }}>Gói tập</div>
@@ -110,13 +116,12 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="VD: Hoàn buổi do lỗi hệ thống"
-              required
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             />
           </div>
 
-          {error && <ErrorBox error={error} />}
+          <FormError error={error} />
 
           <div className="flex gap-2 pt-1">
             <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Huỷ</Btn>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/Modal";
-import ErrorBox from "@/components/ErrorBox";
+import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import { adminStudentApi } from "@/lib/api";
 import type { Student } from "@/types";
@@ -37,6 +37,16 @@ export default function EditStudentModal({ student, onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!student) return;
+
+    if (!fullName.trim()) {
+      setError(new Error("Vui lòng nhập họ tên"));
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError(new Error("Email không hợp lệ"));
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
@@ -56,12 +66,12 @@ export default function EditStudentModal({ student, onClose, onSaved }: Props) {
 
   return (
     <Modal title="Sửa học viên" open={!!student} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Họ tên <span style={{ color: "var(--accent)" }}>*</span>
           </label>
-          <input className={inputClass} style={inputStyle} value={fullName} onChange={(e) => setFullName(e.target.value)} required
+          <input className={inputClass} style={inputStyle} value={fullName} onChange={(e) => setFullName(e.target.value)}
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")} onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")} />
         </div>
 
@@ -84,7 +94,7 @@ export default function EditStudentModal({ student, onClose, onSaved }: Props) {
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")} onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")} />
         </div>
 
-        {error && <ErrorBox error={error} />}
+        <FormError error={error} />
 
         <div className="flex gap-2 pt-1">
           <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Huỷ</Btn>

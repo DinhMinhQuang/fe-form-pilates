@@ -3,7 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
-import ErrorBox from "@/components/ErrorBox";
+import FormError from "@/components/FormError";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
 import { adminStudentApi, studentApi } from "@/lib/api";
@@ -41,7 +41,7 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
   return (
     <Modal title={`Đặt lịch dùm — ${studentName}`} open={open} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        {error && <ErrorBox error={error} />}
+        <FormError error={error} />
 
         <div
           className="rounded-xl border overflow-hidden"
