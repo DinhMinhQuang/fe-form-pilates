@@ -3,11 +3,19 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { adminStudentApi, adminBookingApi } from "@/lib/api";
-import type { Booking, Student } from "@/types";
+import type { AdminCreditLot, Booking, Student } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
 import BookForStudentModal from "@/components/admin/BookForStudentModal";
+import AdjustCreditModal from "@/components/admin/AdjustCreditModal";
+import CreateCreditLotModal from "@/components/admin/CreateCreditLotModal";
+
+const LOT_STATUS: Record<string, { label: string; bg: string; color: string }> = {
+  active: { label: "Còn hạn", bg: "#EAF5EA", color: "#2E6B2E" },
+  frozen: { label: "Tạm khoá", bg: "#FEF9E7", color: "#7A5C00" },
+  void:   { label: "Vô hiệu", bg: "var(--cream-dark)", color: "var(--warm-gray)" },
+};
 
 const BOOKING_STATUS: Record<string, { label: string; bg: string; color: string }> = {
   booked:             { label: "Đã đặt",  bg: "#EAF5EA", color: "#2E6B2E" },
@@ -23,6 +31,9 @@ interface Props {
 
 export default function StudentDrawer({ student, onClose }: Props) {
   const [showBook, setShowBook] = useState(false);
+  const [showCreateCredit, setShowCreateCredit] = useState(false);
+  const [adjustingLot, setAdjustingLot] = useState<AdminCreditLot | null>(null);
+  const [disabling, setDisabling] = useState(false);
 
   const { data: detail, error: detailError, mutate: mutateDetail } = useSWR(
     student ? `/admin/students/${student.id}` : null,
@@ -37,6 +48,23 @@ export default function StudentDrawer({ student, onClose }: Props) {
   function refetch() {
     mutateDetail();
     mutateBookings();
+  }
+
+  async function handleToggleStatus() {
+    if (!student || !detail) return;
+    const disable = detail.status === "active";
+    if (disable && !window.confirm(`Vô hiệu hoá học viên "${student.full_name}"?`)) return;
+    setDisabling(true);
+    try {
+      if (disable) {
+        await adminStudentApi.disable(student.id);
+      } else {
+        await adminStudentApi.update(student.id, { status: "active" });
+      }
+      refetch();
+    } finally {
+      setDisabling(false);
+    }
   }
 
   if (!student) return null;
@@ -74,7 +102,14 @@ export default function StudentDrawer({ student, onClose }: Props) {
               </div>
             </div>
           </div>
-          <Btn variant="ghost" size="sm" className="!px-2 !py-1 border-0" onClick={onClose}>✕</Btn>
+          <div className="flex items-center gap-2">
+            {detail && (
+              <Btn variant={detail.status === "active" ? "danger" : "ghost"} size="sm" disabled={disabling} onClick={handleToggleStatus}>
+                {disabling ? "..." : detail.status === "active" ? "Vô hiệu hoá" : "Kích hoạt lại"}
+              </Btn>
+            )}
+            <Btn variant="ghost" size="sm" className="!px-2 !py-1 border-0" onClick={onClose}>✕</Btn>
+          </div>
         </div>
 
         {/* Scrollable content */}
@@ -94,6 +129,58 @@ export default function StudentDrawer({ student, onClose }: Props) {
             </div>
             <Btn variant="accent" onClick={() => setShowBook(true)}>Đặt lịch dùm</Btn>
           </div>
+
+          {/* Credit lots */}
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
+                Các gói tập
+              </h3>
+              <button
+                type="button"
+                className="text-xs font-semibold"
+                style={{ color: "var(--accent)" }}
+                onClick={() => setShowCreateCredit(true)}
+              >
+                + Cấp gói mới
+              </button>
+            </div>
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--sand)" }}>
+              {!detail ? (
+                <div className="px-4 py-6 text-center text-sm" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
+              ) : !detail.credit_lots.length ? (
+                <div className="px-4 py-6 text-center text-sm" style={{ color: "var(--warm-gray-light)" }}>Chưa có gói tập nào</div>
+              ) : (
+                <ul>
+                  {detail.credit_lots.map((lot) => {
+                    const expired = lot.status === "active" && new Date(lot.expires_at) < new Date();
+                    const badge = expired
+                      ? { label: "Hết hạn", bg: "#FBF0F0", color: "#B94B4B" }
+                      : (LOT_STATUS[lot.status] ?? { label: lot.status, bg: "var(--cream-dark)", color: "var(--charcoal)" });
+                    return (
+                      <li
+                        key={lot.id}
+                        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[var(--cream)] transition-colors"
+                        style={{ borderBottom: "1px solid var(--cream-dark)" }}
+                        onClick={() => setAdjustingLot(lot)}
+                      >
+                        <div>
+                          <div className="font-medium text-sm" style={{ color: "var(--charcoal)" }}>{lot.package_name}</div>
+                          <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray-light)" }}>
+                            {lot.sessions_remaining}/{lot.sessions_total} buổi · HH {new Date(lot.expires_at).toLocaleDateString("vi-VN")}
+                            {lot.branch_name ? ` · ${lot.branch_name}` : " · Mọi chi nhánh"}
+                          </div>
+                        </div>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: badge.bg, color: badge.color }}>
+                          {badge.label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
 
           {/* Booking history */}
           <section>
@@ -145,6 +232,20 @@ export default function StudentDrawer({ student, onClose }: Props) {
         open={showBook}
         onClose={() => setShowBook(false)}
         onBooked={() => { setShowBook(false); refetch(); }}
+      />
+
+      <CreateCreditLotModal
+        studentId={student.id}
+        open={showCreateCredit}
+        onClose={() => setShowCreateCredit(false)}
+        onCreated={() => { setShowCreateCredit(false); refetch(); }}
+      />
+
+      <AdjustCreditModal
+        studentId={student.id}
+        lot={adjustingLot}
+        onClose={() => setAdjustingLot(null)}
+        onSaved={() => { setAdjustingLot(null); refetch(); }}
       />
     </>
   );

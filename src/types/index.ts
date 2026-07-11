@@ -135,6 +135,19 @@ export interface Student extends AppUser {
   credits: number;
 }
 
+export interface AdminCreditLot {
+  id: string;
+  package_id: string;
+  package_name: string;
+  sessions_total: number;
+  sessions_remaining: number;
+  activated_at: string;
+  expires_at: string;
+  status: CreditLotStatus;
+  branch_id: string | null;
+  branch_name: string | null;
+}
+
 export interface StudentDetail {
   id: string;
   full_name: string;
@@ -143,6 +156,7 @@ export interface StudentDetail {
   status: "active" | "disabled";
   notes: string | null;
   credits: number;
+  credit_lots: AdminCreditLot[];
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -192,6 +206,19 @@ export interface CreateStudentBody {
   email?: string;
   phone?: string;
   notes?: string;
+}
+
+export interface CreateCreditLotBody {
+  package_id: string;
+  sessions_total: number;
+  expires_at: string;
+  branch_id?: string;
+}
+
+export interface TrainerStudentSearchResult {
+  id: string;
+  full_name: string;
+  phone: string | null;
 }
 
 export interface AttendanceBody {

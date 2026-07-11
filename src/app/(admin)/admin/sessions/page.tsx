@@ -7,6 +7,7 @@ import type { ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import CreateSessionModal from "@/components/admin/CreateSessionModal";
+import EditSessionModal from "@/components/admin/EditSessionModal";
 import Btn from "@/components/Btn";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -18,6 +19,7 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
 export default function AdminSessionsPage() {
   const { data: sessions, isLoading, error, mutate } = useSWR("/admin/sessions", () => adminSessionApi.list());
   const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState<ClassSession | null>(null);
 
   return (
     <div>
@@ -30,6 +32,15 @@ export default function AdminSessionsPage() {
       </div>
 
       <CreateSessionModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />
+
+      {editing && (
+        <EditSessionModal
+          session={editing}
+          open={!!editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); mutate(); }}
+        />
+      )}
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
 
@@ -52,7 +63,12 @@ export default function AdminSessionsPage() {
             ) : sessions.map((s: ClassSession) => {
               const status = STATUS_MAP[s.status] ?? { label: s.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
               return (
-                <tr key={s.id} style={{ borderBottom: "1px solid var(--cream-dark)" }} className="hover:bg-[var(--cream)] transition-colors cursor-pointer">
+                <tr
+                  key={s.id}
+                  style={{ borderBottom: "1px solid var(--cream-dark)" }}
+                  className="hover:bg-[var(--cream)] transition-colors cursor-pointer"
+                  onClick={() => setEditing(s)}
+                >
                   <td className="px-5 py-3.5">
                     <div className="font-medium" style={{ color: "var(--charcoal)" }}>{s.class_type_name}</div>
                     <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray-light)" }}>{s.branch_name}</div>

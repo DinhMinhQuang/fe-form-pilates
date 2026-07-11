@@ -21,6 +21,7 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -57,6 +58,25 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
     }
   }
 
+  async function handleToggleStatus() {
+    if (!trainer) return;
+    const disable = trainer.status === "active";
+    if (disable && !window.confirm(`Vô hiệu hoá HLV "${trainer.full_name}"?`)) return;
+    setTogglingStatus(true);
+    try {
+      if (disable) {
+        await adminTrainerApi.disable(trainer.id);
+      } else {
+        await adminTrainerApi.update(trainer.id, { status: "active" });
+      }
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setTogglingStatus(false);
+    }
+  }
+
   return (
     <Modal title="Sửa huấn luyện viên" open={!!trainer} onClose={onClose}>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -82,6 +102,17 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
         </div>
 
         <FormError error={error} />
+
+        {trainer && (
+          <Btn
+            variant={trainer.status === "active" ? "danger" : "ghost"}
+            type="button"
+            disabled={togglingStatus}
+            onClick={handleToggleStatus}
+          >
+            {togglingStatus ? "..." : trainer.status === "active" ? "Vô hiệu hoá HLV" : "Kích hoạt lại"}
+          </Btn>
+        )}
 
         <div className="flex gap-2 pt-1">
           <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Huỷ</Btn>
