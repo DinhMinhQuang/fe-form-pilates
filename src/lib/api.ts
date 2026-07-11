@@ -10,6 +10,7 @@ import type {
   ClassSession,
   ClassType,
   CoursePackage,
+  CreateCreditLotBody,
   CreateSessionBody,
   CreateStudentBody,
   CreateTrainerBody,
@@ -20,6 +21,7 @@ import type {
   Student,
   StudentDetail,
   Trainer,
+  TrainerStudentSearchResult,
 } from "@/types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -388,6 +390,16 @@ export const trainerApi = {
 
   markAttendance: (bookingId: string, body: AttendanceBody) =>
     post<void>(`/trainer/bookings/${bookingId}/attendance`, body),
+
+  searchStudents: (q: string) =>
+    get<TrainerStudentSearchResult[]>(
+      `/trainer/students?${new URLSearchParams({ q }).toString()}`,
+    ),
+
+  book: (studentId: string, sessionId: string) =>
+    post<{ booking_id: string }>(
+      `/trainer/students/${studentId}/sessions/${sessionId}/book`,
+    ),
 };
 
 // ─── Admin — Sessions ─────────────────────────────────────────────────────────
@@ -441,10 +453,15 @@ export const adminStudentApi = {
   update: (studentId: string, body: Partial<CreateStudentBody & { status: string }>) =>
     patch<void>(`/admin/students/${studentId}`, body),
 
+  disable: (studentId: string) => del<void>(`/admin/students/${studentId}`),
+
   book: (studentId: string, sessionId: string) =>
     post<{ booking_id: string }>(
       `/admin/students/${studentId}/sessions/${sessionId}/book`,
     ),
+
+  createCredit: (studentId: string, body: CreateCreditLotBody) =>
+    post<{ lot_id: string }>(`/admin/students/${studentId}/credits`, body),
 
   adjustCredit: (
     studentId: string,

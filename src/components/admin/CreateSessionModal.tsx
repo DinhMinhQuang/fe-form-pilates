@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
@@ -9,6 +9,24 @@ import { adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
+
+function toLocalInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function defaultStart() {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  return toLocalInput(d);
+}
+
+function defaultEnd() {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  d.setHours(d.getHours() + 1);
+  return toLocalInput(d);
+}
 
 interface Props {
   open: boolean;
@@ -24,18 +42,44 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
   const [branchId, setBranchId] = useState("");
   const [classTypeId, setClassTypeId] = useState("");
   const [trainerId, setTrainerId] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
-  const [capacity, setCapacity] = useState(10);
+  const [startAt, setStartAt] = useState(defaultStart);
+  const [endAt, setEndAt] = useState(defaultEnd);
+  const [capacity, setCapacity] = useState(6);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   function reset() {
     setBranchId(""); setClassTypeId(""); setTrainerId("");
-    setStartAt(""); setEndAt(""); setCapacity(10); setError(null);
+    setStartAt(defaultStart()); setEndAt(defaultEnd()); setCapacity(6); setError(null);
   }
 
   function handleClose() { reset(); onClose(); }
+
+  const selectedBranch = branches?.find((b) => b.id === branchId);
+  const availableClassTypes = selectedBranch
+    ? classTypes?.filter((ct) => selectedBranch.class_type_ids.includes(ct.id))
+    : classTypes;
+
+  function handleBranchChange(id: string) {
+    setBranchId(id);
+    const branch = branches?.find((b) => b.id === id);
+    if (branch && classTypeId && !branch.class_type_ids.includes(classTypeId)) {
+      setClassTypeId("");
+    }
+  }
+
+  function handleClassTypeChange(id: string) {
+    setClassTypeId(id);
+    const ct = classTypes?.find((c) => c.id === id);
+    if (ct) setCapacity(ct.default_capacity);
+  }
+
+  useEffect(() => {
+    if (open) {
+      setStartAt(defaultStart());
+      setEndAt(defaultEnd());
+    }
+  }, [open]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -101,7 +145,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <select
               className={inputClass} style={selectStyle}
-              value={branchId} onChange={(e) => setBranchId(e.target.value)}
+              value={branchId} onChange={(e) => handleBranchChange(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             >
@@ -118,13 +162,14 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <select
               className={inputClass} style={selectStyle}
-              value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)}
+              value={classTypeId} onChange={(e) => handleClassTypeChange(e.target.value)}
+              disabled={!branchId}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             >
-              <option value="">Chọn loại lớp</option>
-              {classTypes?.map((ct) => (
-                <option key={ct.id} value={ct.id}>{ct.name}</option>
+              <option value="">{branchId ? "Chọn loại lớp" : "Chọn chi nhánh trước"}</option>
+              {availableClassTypes?.map((ct) => (
+                <option key={ct.id} value={ct.id}>{ct.name} ({ct.default_capacity})</option>
               ))}
             </select>
           </div>
@@ -176,13 +221,21 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Sức chứa <span style={{ color: "var(--accent)" }}>*</span>
           </label>
-          <input
-            type="number" min={1} max={100}
-            className={inputClass} style={inputStyle}
+          <select
+            className={inputClass} style={selectStyle}
             value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}
+            disabled={!classTypeId}
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-          />
+          >
+            <option value={1}>1 (Private)</option>
+            <option value={2}>2 (Duo)</option>
+            <option value={3}>3 (Trio)</option>
+            <option value={6}>6 (Nhóm)</option>
+          </select>
+          <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
+            Tự động theo loại lớp, có thể đổi nếu cần.
+          </p>
         </div>
 
         <FormError error={error} />

@@ -19,14 +19,13 @@
 @theme inline {
   --color-background: var(--cream);
   --color-foreground: var(--charcoal);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Google Sans';
 }
 
 body {
   background: var(--cream);
   color: var(--charcoal);
-  font-family: var(--font-geist-sans), 'Inter', Arial, Helvetica, sans-serif;
+  font-family: 'Google Sans', Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

@@ -7,6 +7,7 @@ import type { Booking, ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
+import TrainerBookModal from "@/components/TrainerBookModal";
 
 const DAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -124,6 +125,7 @@ export default function TrainerPage() {
     return d === 0 ? 6 : d - 1;
   });
   const [openId, setOpenId] = useState<string | null>(null);
+  const [bookingSession, setBookingSession] = useState<ClassSession | null>(null);
 
   const days = useMemo(() => getWeekDays(weekOffset), [weekOffset]);
   const from = days[0].toISOString();
@@ -307,6 +309,19 @@ export default function TrainerPage() {
                         </span>
                       </div>
                     )}
+
+                    {/* Book on behalf of a student (private/duo) */}
+                    {!passed && s.booked_count < s.capacity && (
+                      <div className="mt-2">
+                        <Btn
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); setBookingSession(s); }}
+                        >
+                          + Đặt hộ học viên
+                        </Btn>
+                      </div>
+                    )}
                   </div>
 
                   {open && (
@@ -318,6 +333,15 @@ export default function TrainerPage() {
           </div>
         )}
       </div>
+
+      {bookingSession && (
+        <TrainerBookModal
+          session={bookingSession}
+          open={!!bookingSession}
+          onClose={() => setBookingSession(null)}
+          onBooked={() => { setBookingSession(null); mutate(); }}
+        />
+      )}
     </div>
   );
 }
