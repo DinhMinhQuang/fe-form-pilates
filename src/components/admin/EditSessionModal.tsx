@@ -11,6 +11,7 @@ import type { ClassSession } from "@/types";
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
 const selectStyle = { ...inputStyle, appearance: "none" as const };
+const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
 function toLocalInput(iso: string) {
   const d = new Date(iso);
@@ -73,6 +74,10 @@ export default function EditSessionModal({ session, open, onClose, onSaved }: Pr
     e.preventDefault();
     if (new Date(endAt) <= new Date(startAt)) {
       setError(new Error("Thời gian kết thúc phải sau thời gian bắt đầu"));
+      return;
+    }
+    if (new Date(endAt).getTime() - new Date(startAt).getTime() > MAX_SESSION_DURATION_MS) {
+      setError(new Error("Thời lượng buổi tập tối đa là 2 tiếng"));
       return;
     }
     if (capacity < session.booked_count) {
