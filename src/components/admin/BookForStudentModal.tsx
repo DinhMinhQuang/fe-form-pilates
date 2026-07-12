@@ -6,7 +6,7 @@ import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
-import { adminStudentApi, studentApi } from "@/lib/api";
+import { adminBookingApi, adminSessionApi, adminStudentApi } from "@/lib/api";
 import type { ClassSession } from "@/types";
 
 interface Props {
@@ -19,9 +19,14 @@ interface Props {
 
 export default function BookForStudentModal({ studentId, studentName, open, onClose, onBooked }: Props) {
   const { data: sessions, isLoading } = useSWR(
-    open ? "/sessions/admin-book" : null,
-    () => studentApi.sessions(),
+    open ? "/admin/sessions/admin-book" : null,
+    () => adminSessionApi.list({ status: "scheduled" }),
   );
+  const { data: existingBookings } = useSWR(
+    open ? [`/admin/bookings/admin-book`, studentId] : null,
+    () => adminBookingApi.list({ student_id: studentId, status: "booked" }),
+  );
+  const bookedSessionIds = new Set(existingBookings?.map((b) => b.session_id));
   const [booking, setBooking] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -63,6 +68,7 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
                 <EmptyRow colSpan={4} message="Không có buổi học nào" />
               ) : sessions.map((s: ClassSession) => {
                 const full = s.booked_count >= s.capacity;
+                const alreadyBooked = bookedSessionIds.has(s.id);
                 return (
                   <tr key={s.id} style={{ borderBottom: "1px solid var(--cream-dark)" }}>
                     <td className="px-4 py-3">
@@ -76,9 +82,13 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
                       {s.capacity - s.booked_count}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Btn size="sm" variant="primary" disabled={full || booking === s.id} onClick={() => handleBook(s.id)}>
-                        {booking === s.id ? "..." : "Đặt"}
-                      </Btn>
+                      {alreadyBooked ? (
+                        <span className="text-xs" style={{ color: "var(--warm-gray-light)" }}>Đã đặt</span>
+                      ) : (
+                        <Btn size="sm" variant="primary" disabled={full || booking === s.id} onClick={() => handleBook(s.id)}>
+                          {booking === s.id ? "..." : "Đặt"}
+                        </Btn>
+                      )}
                     </td>
                   </tr>
                 );

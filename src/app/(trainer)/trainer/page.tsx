@@ -238,6 +238,7 @@ export default function TrainerPage() {
               const start = new Date(s.start_at);
               const end   = new Date(s.end_at);
               const passed = start < now;
+              const cancelled = s.status === "cancelled";
               const open   = openId === s.id;
               const durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
 
@@ -253,18 +254,23 @@ export default function TrainerPage() {
                   style={{
                     border: `1px solid ${open ? "var(--accent)" : "var(--sand)"}`,
                     background: "var(--white)",
-                    opacity: passed ? 0.65 : 1,
+                    opacity: passed || cancelled ? 0.65 : 1,
                   }}
                 >
                   {/* Card header — clickable */}
                   <div
-                    className="relative p-4 cursor-pointer"
+                    className={cancelled ? "relative p-4" : "relative p-4 cursor-pointer"}
                     style={{ background: open ? "var(--cream)" : "var(--white)" }}
-                    onClick={() => setOpenId(open ? null : s.id)}
+                    onClick={() => !cancelled && setOpenId(open ? null : s.id)}
                   >
                     {/* Status badge */}
                     <div className="absolute top-4 right-4">
-                      {passed ? (
+                      {cancelled ? (
+                        <span className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5"
+                          style={{ color: "var(--white)", background: "#B94B4B", fontSize: 10 }}>
+                          Đã huỷ
+                        </span>
+                      ) : passed ? (
                         <span className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5 border"
                           style={{ color: "var(--warm-gray)", borderColor: "var(--sand)", fontSize: 10 }}>
                           Đã qua
@@ -279,7 +285,7 @@ export default function TrainerPage() {
 
                     {/* Class name */}
                     <div className="font-bold uppercase pr-16 mb-2"
-                      style={{ color: passed ? "var(--warm-gray)" : "var(--charcoal)", fontSize: 13, letterSpacing: "0.08em", lineHeight: 1.3 }}>
+                      style={{ color: passed || cancelled ? "var(--warm-gray)" : "var(--charcoal)", fontSize: 13, letterSpacing: "0.08em", lineHeight: 1.3 }}>
                       {s.class_type_name}
                     </div>
 
@@ -297,7 +303,7 @@ export default function TrainerPage() {
                     </div>
 
                     {/* Attendance toggle */}
-                    {!passed && (
+                    {!passed && !cancelled && (
                       <div className="mt-3 pt-3 flex items-center justify-between"
                         style={{ borderTop: "1px solid var(--cream-dark)" }}>
                         <span className="text-xs font-semibold uppercase tracking-widest"
@@ -311,7 +317,7 @@ export default function TrainerPage() {
                     )}
 
                     {/* Book on behalf of a student (private/duo) */}
-                    {!passed && s.booked_count < s.capacity && (
+                    {!passed && !cancelled && s.booked_count < s.capacity && (
                       <div className="mt-2">
                         <Btn
                           size="sm"
