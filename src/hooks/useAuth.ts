@@ -16,7 +16,7 @@ export function useAuth(requiredRole?: Role | Role[]) {
     setReady(true);
 
     if (!current) {
-      router.replace("/login");
+      router.replace(loginPathFor(requiredRole));
       return;
     }
 
@@ -31,11 +31,17 @@ export function useAuth(requiredRole?: Role | Role[]) {
   }, []);
 
   function logout() {
+    const role = user?.role;
     clearSession();
-    router.replace("/login");
+    router.replace(role === "student" ? "/student/login" : "/login");
   }
 
   return { user, ready, logout };
+}
+
+function loginPathFor(requiredRole?: Role | Role[]): string {
+  const roles = Array.isArray(requiredRole) ? requiredRole : requiredRole ? [requiredRole] : [];
+  return roles.length === 1 && roles[0] === "student" ? "/student/login" : "/login";
 }
 
 export function roleHome(role: Role): string {
