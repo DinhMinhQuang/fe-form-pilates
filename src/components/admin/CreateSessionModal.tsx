@@ -13,6 +13,7 @@ const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", col
 // Bắt đầu tối thiểu +1h so với hiện tại — backend chặn start_at <= now(),
 // và mặc định = "now" sẽ hết hạn ngay khi admin còn đang điền form.
 const START_OFFSET_HOURS = 1;
+const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -116,6 +117,10 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
     }
     if (new Date(endAt) <= new Date(startAt)) {
       setError(new Error("Thời gian kết thúc phải sau thời gian bắt đầu"));
+      return;
+    }
+    if (new Date(endAt).getTime() - new Date(startAt).getTime() > MAX_SESSION_DURATION_MS) {
+      setError(new Error("Thời lượng buổi tập tối đa là 2 tiếng"));
       return;
     }
     if (capacity < 1) {
