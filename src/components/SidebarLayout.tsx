@@ -46,7 +46,7 @@ export default function SidebarLayout({ nav, matchStart, userName, onLogout, chi
             style={{ width: 26, height: 26, filter: "brightness(0) invert(1)", opacity: 0.85 }}
           />
           <img
-            src="/logo-full.svg"
+            src="/logo-horizontal.svg"
             alt="FORM Pilates"
             className="hidden xl:block"
             style={{ width: 170, height: "auto", filter: "brightness(0) invert(1)", opacity: 0.9, marginLeft: 20 }}

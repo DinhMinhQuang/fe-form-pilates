@@ -8,6 +8,7 @@ import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import CreateSessionModal from "@/components/admin/CreateSessionModal";
 import EditSessionModal from "@/components/admin/EditSessionModal";
+import SessionsCalendarView from "@/components/admin/SessionsCalendarView";
 import Btn from "@/components/Btn";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -20,6 +21,7 @@ export default function AdminSessionsPage() {
   const { data: sessions, isLoading, error, mutate } = useSWR("/admin/sessions", () => adminSessionApi.list());
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ClassSession | null>(null);
+  const [view, setView] = useState<"list" | "calendar">("list");
 
   return (
     <div>
@@ -29,6 +31,24 @@ export default function AdminSessionsPage() {
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Quản lý các buổi tập của studio</p>
         </div>
         <Btn onClick={() => setShowCreate(true)}>+ Thêm buổi tập</Btn>
+      </div>
+
+      <div className="flex gap-1 mb-5 p-1 rounded-lg w-fit" style={{ background: "var(--cream)" }}>
+        {(["list", "calendar"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setView(v)}
+            className="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors"
+            style={
+              view === v
+                ? { background: "var(--white)", color: "var(--charcoal)" }
+                : { color: "var(--warm-gray)" }
+            }
+          >
+            {v === "list" ? "Danh sách" : "Lịch"}
+          </button>
+        ))}
       </div>
 
       <CreateSessionModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />
@@ -44,6 +64,9 @@ export default function AdminSessionsPage() {
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
 
+      {view === "calendar" ? (
+        <SessionsCalendarView onSelect={(s) => setEditing(s)} />
+      ) : (
       <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
@@ -93,6 +116,7 @@ export default function AdminSessionsPage() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

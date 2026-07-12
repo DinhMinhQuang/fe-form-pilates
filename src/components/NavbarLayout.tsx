@@ -62,7 +62,7 @@ export default function NavbarLayout({ nav, accountHref = "/account", userName, 
         <Link href={nav[0]?.href ?? "/"} className="flex-shrink-0 overflow-hidden flex items-center"
           style={{ height: 56, width: 160 }}>
           <img
-            src="/logo-full.svg"
+            src="/logo-horizontal.svg"
             alt="FORM Pilates"
             style={{ width: 160, height: "auto", filter: "brightness(0)", opacity: 0.9 }}
           />

@@ -6,6 +6,7 @@ import { adminBookingApi } from "@/lib/api";
 import type { Booking } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
+import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -15,15 +16,21 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
   no_show:            { label: "Vắng",    bg: "#FEF9E7", color: "#7A5C00" },
 };
 
+const CANCEL_WINDOW_MS = 6 * 60 * 60 * 1000;
+
 export default function AdminBookingsPage() {
   const { data: bookings, isLoading, error, mutate } = useSWR("/admin/bookings", () => adminBookingApi.list());
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<Error | null>(null);
 
   async function handleCancel(bookingId: string) {
     setCancelling(bookingId);
+    setCancelError(null);
     try {
       await adminBookingApi.cancel(bookingId);
       mutate();
+    } catch (err) {
+      setCancelError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setCancelling(null);
     }
@@ -39,6 +46,7 @@ export default function AdminBookingsPage() {
       </div>
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
+      {cancelError && <div className="mb-4"><FormError error={cancelError} /></div>}
 
       <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
@@ -58,7 +66,7 @@ export default function AdminBookingsPage() {
               <EmptyRow colSpan={5} message="Chưa có booking nào" />
             ) : bookings.map((b: Booking) => {
               const status = STATUS_MAP[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
-              const cancellable = b.status === "booked";
+              const cancellable = b.status === "booked" && new Date(b.session_start_at).getTime() - Date.now() >= CANCEL_WINDOW_MS;
               return (
                 <tr key={b.id} style={{ borderBottom: "1px solid var(--cream-dark)" }} className="hover:bg-[var(--cream)] transition-colors group">
                   <td className="px-5 py-3.5">

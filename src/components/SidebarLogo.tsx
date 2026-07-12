@@ -14,7 +14,7 @@ export default function SidebarLogo({ role }: Props) {
       {/* SVG logo — form-icon fills white */}
         <div className="mb-1 -mx-1">
         <img
-          src="/logo-full.svg"
+          src="/logo-horizontal.svg"
           alt="FORM Pilates"
           style={{ width: 180, height: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }}
         />

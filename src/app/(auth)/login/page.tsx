@@ -50,7 +50,7 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       {/* Mobile logo */}
       <div className="lg:hidden mb-8">
-        <img src="/logo-full.svg" alt="FORM Pilates" style={{ width: 160, height: "auto", opacity: 0.85 }} />
+        <img src="/logo-horizontal.svg" alt="FORM Pilates" style={{ width: 160, height: "auto", opacity: 0.85 }} />
       </div>
 
       <div

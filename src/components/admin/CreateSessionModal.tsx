@@ -10,6 +10,10 @@ import { adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
 
+// Bắt đầu tối thiểu +1h so với hiện tại — backend chặn start_at <= now(),
+// và mặc định = "now" sẽ hết hạn ngay khi admin còn đang điền form.
+const START_OFFSET_HOURS = 1;
+
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -18,13 +22,14 @@ function toLocalInput(d: Date) {
 function defaultStart() {
   const d = new Date();
   d.setSeconds(0, 0);
+  d.setHours(d.getHours() + START_OFFSET_HOURS);
   return toLocalInput(d);
 }
 
 function defaultEnd() {
   const d = new Date();
   d.setSeconds(0, 0);
-  d.setHours(d.getHours() + 1);
+  d.setHours(d.getHours() + START_OFFSET_HOURS + 1);
   return toLocalInput(d);
 }
 
@@ -42,6 +47,11 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
   const [branchId, setBranchId] = useState("");
   const [classTypeId, setClassTypeId] = useState("");
   const [trainerId, setTrainerId] = useState("");
+
+  const { data: trainerSchedule } = useSWR(
+    trainerId ? ["/admin/sessions", trainerId] : null,
+    () => adminSessionApi.list({ trainer_id: trainerId, status: "scheduled" }),
+  );
   const [startAt, setStartAt] = useState(defaultStart);
   const [endAt, setEndAt] = useState(defaultEnd);
   const [capacity, setCapacity] = useState(6);
@@ -110,6 +120,15 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
     }
     if (capacity < 1) {
       setError(new Error("Sức chứa phải ít nhất 1 người"));
+      return;
+    }
+    const newStart = new Date(startAt).getTime();
+    const newEnd = new Date(endAt).getTime();
+    const conflict = trainerSchedule?.some(
+      (s) => new Date(s.start_at).getTime() < newEnd && new Date(s.end_at).getTime() > newStart,
+    );
+    if (conflict) {
+      setError(new Error("Huấn luyện viên đã có lịch dạy trong khoảng thời gian này."));
       return;
     }
 
@@ -190,6 +209,18 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
               <option key={t.id} value={t.id}>{t.full_name}</option>
             ))}
           </select>
+          {trainerId && !!trainerSchedule?.length && (
+            <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
+              Lịch dạy sắp tới:{" "}
+              {trainerSchedule
+                .map((s) =>
+                  new Date(s.start_at).toLocaleString("vi-VN", {
+                    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+                  }),
+                )
+                .join(", ")}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">

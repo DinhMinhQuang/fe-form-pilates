@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       >
         <div>
           <img
-            src="/logo-full.svg"
+            src="/logo-horizontal.svg"
             alt="FORM Pilates"
             style={{ width: 200, height: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }}
           />

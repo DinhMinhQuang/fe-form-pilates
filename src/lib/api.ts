@@ -177,6 +177,7 @@ interface RawTrainerSession {
   end_at: string;
   booked_count: number;
   capacity: number;
+  status: string;
 }
 
 interface RawStudentInClass {
@@ -292,7 +293,7 @@ function toTrainerSession(r: RawTrainerSession): ClassSession {
     end_at: r.end_at,
     capacity: r.capacity,
     booked_count: r.booked_count,
-    status: "scheduled",
+    status: r.status as ClassSession["status"],
   };
 }
 
