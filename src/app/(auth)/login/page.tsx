@@ -105,7 +105,10 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-xs text-center" style={{ color: "var(--warm-gray-light)" }}>
-          Học viên đăng nhập qua magic link được gửi qua email.
+          Là học viên?{" "}
+          <a href="/student/login" className="underline underline-offset-2" style={{ color: "var(--warm-gray)" }}>
+            Nhận link đăng nhập tại đây
+          </a>
         </p>
       </div>
     </div>

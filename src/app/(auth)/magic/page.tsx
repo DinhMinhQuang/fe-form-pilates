@@ -36,11 +36,11 @@ function MagicExchange() {
       <div className="flex flex-col gap-4">
         <ErrorBox error={error} />
         <a
-          href="/login"
+          href="/student/login"
           className="text-sm text-center underline underline-offset-2"
           style={{ color: "var(--warm-gray)" }}
         >
-          Quay lại đăng nhập
+          Gửi lại link đăng nhập
         </a>
       </div>
     );
