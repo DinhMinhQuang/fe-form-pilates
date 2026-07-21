@@ -13,6 +13,7 @@ const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", col
 // Bắt đầu tối thiểu +1h so với hiện tại — backend chặn start_at <= now(),
 // và mặc định = "now" sẽ hết hạn ngay khi admin còn đang điền form.
 const START_OFFSET_HOURS = 1;
+const DEFAULT_DURATION_MINUTES = 55;
 const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
 function toLocalInput(d: Date) {
@@ -20,17 +21,19 @@ function toLocalInput(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function defaultStart() {
+function defaultStartDate() {
   const d = new Date();
   d.setSeconds(0, 0);
   d.setHours(d.getHours() + START_OFFSET_HOURS);
-  return toLocalInput(d);
+  return d;
+}
+
+function defaultStart() {
+  return toLocalInput(defaultStartDate());
 }
 
 function defaultEnd() {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  d.setHours(d.getHours() + START_OFFSET_HOURS + 1);
+  const d = new Date(defaultStartDate().getTime() + DEFAULT_DURATION_MINUTES * 60 * 1000);
   return toLocalInput(d);
 }
 
