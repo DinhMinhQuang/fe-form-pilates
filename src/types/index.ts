@@ -146,6 +146,7 @@ export interface AdminCreditLot {
   status: CreditLotStatus;
   branch_id: string | null;
   branch_name: string | null;
+  class_type_ids: string[];
 }
 
 export interface StudentDetail {

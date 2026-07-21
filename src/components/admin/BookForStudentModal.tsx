@@ -26,9 +26,25 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
     open ? [`/admin/bookings/admin-book`, studentId] : null,
     () => adminBookingApi.list({ student_id: studentId, status: "booked" }),
   );
+  const { data: student } = useSWR(
+    open ? [`/admin/students/admin-book`, studentId] : null,
+    () => adminStudentApi.detail(studentId),
+  );
   const bookedSessionIds = new Set(existingBookings?.map((b) => b.session_id));
   const [booking, setBooking] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
+
+  const now = Date.now();
+  const activeLots = student?.credit_lots.filter(
+    (l) => l.status === "active" && l.sessions_remaining > 0 && new Date(l.expires_at).getTime() > now,
+  ) ?? [];
+  const bookableSessions = sessions?.filter((s) =>
+    activeLots.some(
+      (l) =>
+        l.class_type_ids.includes(s.class_type_id) &&
+        (l.branch_id == null || l.branch_id === s.branch_id),
+    ),
+  );
 
   async function handleBook(sessionId: string) {
     setBooking(sessionId);
@@ -62,11 +78,11 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
+              {isLoading || !student ? (
                 <tr><td colSpan={4} className="px-4 py-8 text-center text-sm" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
-              ) : !sessions?.length ? (
-                <EmptyRow colSpan={4} message="Không có buổi học nào" />
-              ) : sessions.map((s: ClassSession) => {
+              ) : !bookableSessions?.length ? (
+                <EmptyRow colSpan={4} message="Học viên không còn credit phù hợp cho buổi nào" />
+              ) : bookableSessions.map((s: ClassSession) => {
                 const full = s.booked_count >= s.capacity;
                 const alreadyBooked = bookedSessionIds.has(s.id);
                 return (
