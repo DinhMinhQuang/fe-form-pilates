@@ -20,7 +20,7 @@ interface Props {
 export default function BookForStudentModal({ studentId, studentName, open, onClose, onBooked }: Props) {
   const { data: sessions, isLoading } = useSWR(
     open ? "/admin/sessions/admin-book" : null,
-    () => adminSessionApi.list({ status: "scheduled" }),
+    () => adminSessionApi.list({ status: "scheduled", limit: 200 }),
   );
   const { data: existingBookings } = useSWR(
     open ? [`/admin/bookings/admin-book`, studentId] : null,

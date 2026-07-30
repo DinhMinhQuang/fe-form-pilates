@@ -17,11 +17,33 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
   cancelled:  { label: "Đã huỷ",      bg: "#FBF0F0", color: "#B94B4B" },
 };
 
+const PAGE_SIZE = 10;
+
 export default function AdminSessionsPage() {
-  const { data: sessions, isLoading, error, mutate } = useSWR("/admin/sessions", () => adminSessionApi.list());
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors[cursors.length - 1];
+
+  const { data: sessions, isLoading, error, mutate } = useSWR(
+    ["/admin/sessions", cursor],
+    () => adminSessionApi.list({ limit: PAGE_SIZE, cursor }),
+  );
+
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ClassSession | null>(null);
   const [view, setView] = useState<"list" | "calendar">("list");
+
+  function goNext() {
+    if (sessions?.nextCursor) setCursors((c) => [...c, sessions.nextCursor!]);
+  }
+
+  function goPrev() {
+    setCursors((c) => c.slice(0, -1));
+  }
+
+  function refresh() {
+    setCursors([]);
+    mutate();
+  }
 
   return (
     <div>
@@ -51,22 +73,23 @@ export default function AdminSessionsPage() {
         ))}
       </div>
 
-      <CreateSessionModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />
+      <CreateSessionModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); refresh(); }} />
 
       {editing && (
         <EditSessionModal
           session={editing}
           open={!!editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); mutate(); }}
+          onSaved={() => { setEditing(null); refresh(); }}
         />
       )}
 
-      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
+      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
 
       {view === "calendar" ? (
         <SessionsCalendarView onSelect={(s) => setEditing(s)} />
       ) : (
+      <>
       <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
@@ -116,6 +139,12 @@ export default function AdminSessionsPage() {
           </tbody>
         </table>
       </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Btn variant="ghost" size="sm" onClick={goPrev} disabled={!cursors.length || isLoading}>← Trước</Btn>
+        <Btn variant="ghost" size="sm" onClick={goNext} disabled={!sessions?.nextCursor || isLoading}>Tiếp →</Btn>
+      </div>
+      </>
       )}
     </div>
   );

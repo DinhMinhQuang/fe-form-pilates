@@ -52,8 +52,8 @@ export default function CreateTrainerModal({ open, onClose, onCreated }: Props) 
       setError(new Error("Vui lòng nhập mật khẩu"));
       return;
     }
-    if (password.length < 8) {
-      setError(new Error("Mật khẩu phải có ít nhất 8 ký tự"));
+    if (password.length < 10) {
+      setError(new Error("Mật khẩu phải có ít nhất 10 ký tự"));
       return;
     }
 

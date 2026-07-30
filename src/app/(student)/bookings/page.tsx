@@ -15,7 +15,7 @@ const STATUS: Record<string, { label: string; dot: string }> = {
 };
 
 export default function BookingsPage() {
-  const { data: bookings, isLoading, error, mutate } = useSWR("/me/bookings", studentApi.myBookings);
+  const { data: bookings, isLoading, error, mutate } = useSWR("/me/bookings", () => studentApi.myBookings());
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<Error | null>(null);
 

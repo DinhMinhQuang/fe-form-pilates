@@ -16,19 +16,67 @@ const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> =
   no_show:            { label: "Vắng",    bg: "#FEF9E7", color: "#7A5C00" },
 };
 
+const STATUS_OPTIONS = [
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "booked", label: "Đã đặt" },
+  { value: "attended", label: "Đã học" },
+  { value: "cancelled_refunded", label: "Đã huỷ" },
+  { value: "no_show", label: "Vắng" },
+];
+
 const CANCEL_WINDOW_MS = 6 * 60 * 60 * 1000;
+const PAGE_SIZE = 10;
+
+const inputClass = "rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
+const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
 
 export default function AdminBookingsPage() {
-  const { data: bookings, isLoading, error, mutate } = useSWR("/admin/bookings", () => adminBookingApi.list());
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors[cursors.length - 1];
+
+  const { data: bookings, isLoading, error, mutate } = useSWR(
+    ["/admin/bookings", q, status, from, to, cursor],
+    () =>
+      adminBookingApi.list({
+        q: q.trim() || undefined,
+        status: status || undefined,
+        from: from ? new Date(from).toISOString() : undefined,
+        to: to ? new Date(to).toISOString() : undefined,
+        limit: PAGE_SIZE,
+        cursor,
+      }),
+  );
+
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<Error | null>(null);
+
+  function resetPage() {
+    setCursors([]);
+  }
+
+  function goNext() {
+    if (bookings?.nextCursor) setCursors((c) => [...c, bookings.nextCursor!]);
+  }
+
+  function goPrev() {
+    setCursors((c) => c.slice(0, -1));
+  }
+
+  function refresh() {
+    setCursors([]);
+    mutate();
+  }
 
   async function handleCancel(bookingId: string) {
     setCancelling(bookingId);
     setCancelError(null);
     try {
       await adminBookingApi.cancel(bookingId);
-      mutate();
+      refresh();
     } catch (err) {
       setCancelError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -45,7 +93,43 @@ export default function AdminBookingsPage() {
         </div>
       </div>
 
-      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
+      <div className="mb-4 flex flex-wrap gap-3">
+        <input
+          type="text"
+          placeholder="Tìm theo tên hoặc số điện thoại..."
+          value={q}
+          onChange={(e) => { setQ(e.target.value); resetPage(); }}
+          className={`${inputClass} w-full max-w-xs`}
+          style={inputStyle}
+        />
+        <select
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); resetPage(); }}
+          className={inputClass}
+          style={{ ...inputStyle, appearance: "none" }}
+        >
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => { setFrom(e.target.value); resetPage(); }}
+          className={inputClass}
+          style={inputStyle}
+        />
+        <span className="self-center text-sm" style={{ color: "var(--warm-gray-light)" }}>đến</span>
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => { setTo(e.target.value); resetPage(); }}
+          className={inputClass}
+          style={inputStyle}
+        />
+      </div>
+
+      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
       {cancelError && <div className="mb-4"><FormError error={cancelError} /></div>}
 
       <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
@@ -65,7 +149,7 @@ export default function AdminBookingsPage() {
             ) : !bookings?.length ? (
               <EmptyRow colSpan={5} message="Chưa có booking nào" />
             ) : bookings.map((b: Booking) => {
-              const status = STATUS_MAP[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
+              const s = STATUS_MAP[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
               const cancellable = b.status === "booked" && new Date(b.session_start_at).getTime() - Date.now() >= CANCEL_WINDOW_MS;
               return (
                 <tr key={b.id} style={{ borderBottom: "1px solid var(--cream-dark)" }} className="hover:bg-[var(--cream)] transition-colors group">
@@ -81,8 +165,8 @@ export default function AdminBookingsPage() {
                     {new Date(b.session_start_at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: status.bg, color: status.color }}>
-                      {status.label}
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: s.bg, color: s.color }}>
+                      {s.label}
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right">
@@ -97,6 +181,11 @@ export default function AdminBookingsPage() {
             })}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Btn variant="ghost" size="sm" onClick={goPrev} disabled={!cursors.length || isLoading}>← Trước</Btn>
+        <Btn variant="ghost" size="sm" onClick={goNext} disabled={!bookings?.nextCursor || isLoading}>Tiếp →</Btn>
       </div>
     </div>
   );

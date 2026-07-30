@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { adminHaravanApi } from "@/lib/api";
 import type { HaravanProductMapping } from "@/types";
@@ -7,12 +8,33 @@ import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
 
+const PAGE_SIZE = 10;
+
 export default function AdminHaravanPage() {
-  const { data: mappings, isLoading, error, mutate } = useSWR("/admin/haravan/product-mappings", adminHaravanApi.listMappings);
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors[cursors.length - 1];
+
+  const { data: mappings, isLoading, error, mutate } = useSWR(
+    ["/admin/haravan/product-mappings", cursor],
+    () => adminHaravanApi.listMappings({ limit: PAGE_SIZE, cursor }),
+  );
+
+  function goNext() {
+    if (mappings?.nextCursor) setCursors((c) => [...c, mappings.nextCursor!]);
+  }
+
+  function goPrev() {
+    setCursors((c) => c.slice(0, -1));
+  }
+
+  function refresh() {
+    setCursors([]);
+    mutate();
+  }
 
   async function toggleActive(m: HaravanProductMapping) {
     await adminHaravanApi.updateMapping(m.id, { active: !m.active });
-    mutate();
+    refresh();
   }
 
   return (
@@ -24,13 +46,14 @@ export default function AdminHaravanPage() {
         </div>
       </div>
 
-      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
+      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
 
       <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
               <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Gói credits</th>
+              <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>SKU</th>
               <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Haravan Variant ID</th>
               <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Chi nhánh</th>
               <th className="text-left px-5 py-3 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Trạng thái</th>
@@ -39,12 +62,13 @@ export default function AdminHaravanPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} className="px-5 py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
+              <tr><td colSpan={6} className="px-5 py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
             ) : !mappings?.length ? (
-              <EmptyRow colSpan={5} message="Chưa có mapping nào" />
+              <EmptyRow colSpan={6} message="Chưa có mapping nào" />
             ) : mappings.map((m: HaravanProductMapping) => (
               <tr key={m.id} style={{ borderBottom: "1px solid var(--cream-dark)" }} className="hover:bg-[var(--cream)] transition-colors group">
                 <td className="px-5 py-3.5 font-medium" style={{ color: "var(--charcoal)" }}>{m.package_name}</td>
+                <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "var(--warm-gray)" }}>{m.haravan_sku ?? "—"}</td>
                 <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "var(--warm-gray)" }}>{m.haravan_variant_id}</td>
                 <td className="px-5 py-3.5" style={{ color: "var(--warm-gray)" }}>{m.branch_name ?? "Tất cả"}</td>
                 <td className="px-5 py-3.5">
@@ -61,6 +85,11 @@ export default function AdminHaravanPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Btn variant="ghost" size="sm" onClick={goPrev} disabled={!cursors.length || isLoading}>← Trước</Btn>
+        <Btn variant="ghost" size="sm" onClick={goNext} disabled={!mappings?.nextCursor || isLoading}>Tiếp →</Btn>
       </div>
     </div>
   );

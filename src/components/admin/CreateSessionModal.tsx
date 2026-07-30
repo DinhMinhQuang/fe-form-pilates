@@ -46,7 +46,7 @@ interface Props {
 export default function CreateSessionModal({ open, onClose, onCreated }: Props) {
   const { data: branches } = useSWR("/branches", catalogApi.branches);
   const { data: classTypes } = useSWR("/class-types", catalogApi.classTypes);
-  const { data: trainers } = useSWR("/admin/trainers", adminTrainerApi.list);
+  const { data: trainers } = useSWR("/admin/trainers", () => adminTrainerApi.list());
 
   const [branchId, setBranchId] = useState("");
   const [classTypeId, setClassTypeId] = useState("");
@@ -86,6 +86,15 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
     setClassTypeId(id);
     const ct = classTypes?.find((c) => c.id === id);
     if (ct) setCapacity(ct.default_capacity);
+  }
+
+  // Đổi giờ bắt đầu thì tự dời giờ kết thúc theo đúng 55 phút mặc định,
+  // thay vì giữ nguyên giờ kết thúc cũ (dễ tạo buổi âm/quá ngắn/quá dài).
+  function handleStartAtChange(value: string) {
+    setStartAt(value);
+    const start = new Date(value);
+    if (!value || Number.isNaN(start.getTime())) return;
+    setEndAt(toLocalInput(new Date(start.getTime() + DEFAULT_DURATION_MINUTES * 60 * 1000)));
   }
 
   useEffect(() => {
@@ -238,7 +247,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             </label>
             <input
               type="datetime-local" className={inputClass} style={inputStyle}
-              value={startAt} onChange={(e) => setStartAt(e.target.value)}
+              value={startAt} onChange={(e) => handleStartAtChange(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
             />
