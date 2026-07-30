@@ -11,7 +11,7 @@ import CreateTrainerModal from "@/components/admin/CreateTrainerModal";
 import EditTrainerModal from "@/components/admin/EditTrainerModal";
 
 export default function AdminTrainersPage() {
-  const { data: trainers, isLoading, error, mutate } = useSWR("/admin/trainers", adminTrainerApi.list);
+  const { data: trainers, isLoading, error, mutate } = useSWR("/admin/trainers", () => adminTrainerApi.list());
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Trainer | null>(null);
 

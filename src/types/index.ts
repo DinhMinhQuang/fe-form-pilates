@@ -168,6 +168,7 @@ export interface HaravanProductMapping {
   haravan_variant_id: string;
   package_id: string;
   package_name: string;
+  haravan_sku: string | null;
   branch_id: string | null;
   branch_name: string | null;
   active: boolean;

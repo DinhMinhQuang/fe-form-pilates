@@ -11,11 +11,39 @@ import EditStudentModal from "@/components/admin/EditStudentModal";
 import StudentDrawer from "@/components/admin/StudentDrawer";
 import Btn from "@/components/Btn";
 
+const PAGE_SIZE = 10;
+
 export default function AdminStudentsPage() {
-  const { data: students, isLoading, error, mutate } = useSWR("/admin/students", adminStudentApi.list);
+  const [q, setQ] = useState("");
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors[cursors.length - 1];
+
+  const { data: students, isLoading, error, mutate } = useSWR(
+    ["/admin/students", q, cursor],
+    () => adminStudentApi.list({ q: q.trim() || undefined, cursor, limit: PAGE_SIZE }),
+  );
+
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
   const [viewing, setViewing] = useState<Student | null>(null);
+
+  function handleSearch(value: string) {
+    setQ(value);
+    setCursors([]);
+  }
+
+  function goNext() {
+    if (students?.nextCursor) setCursors((c) => [...c, students.nextCursor!]);
+  }
+
+  function goPrev() {
+    setCursors((c) => c.slice(0, -1));
+  }
+
+  function refresh() {
+    setCursors([]);
+    mutate();
+  }
 
   return (
     <div>
@@ -27,11 +55,22 @@ export default function AdminStudentsPage() {
         <Btn onClick={() => setShowCreate(true)}>+ Thêm học viên</Btn>
       </div>
 
-      <CreateStudentModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); mutate(); }} />
-      <EditStudentModal student={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); mutate(); }} />
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Tìm theo tên hoặc số điện thoại..."
+          value={q}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="w-full max-w-sm rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors"
+          style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" }}
+        />
+      </div>
+
+      <CreateStudentModal open={showCreate} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); refresh(); }} />
+      <EditStudentModal student={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />
       <StudentDrawer student={viewing} onClose={() => setViewing(null)} />
 
-      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
+      {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
 
       <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
@@ -78,6 +117,11 @@ export default function AdminStudentsPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Btn variant="ghost" size="sm" onClick={goPrev} disabled={!cursors.length || isLoading}>← Trước</Btn>
+        <Btn variant="ghost" size="sm" onClick={goNext} disabled={!students?.nextCursor || isLoading}>Tiếp →</Btn>
       </div>
     </div>
   );

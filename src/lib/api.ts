@@ -76,6 +76,30 @@ function get<T>(path: string, auth = true) {
   return request<T>(path, { method: "GET" }, auth);
 }
 
+interface RawPage<T> {
+  items: T[];
+  next_cursor: string | null;
+}
+
+// Mảng thật (giữ nguyên .length/.map/... cho mọi chỗ đang dùng như array phẳng), gắn thêm
+// .nextCursor để chỗ nào cần "tải thêm" có thể đọc mà không phải sửa lại toàn bộ call site.
+export type Paged<T> = T[] & { nextCursor: string | null };
+
+function toPaged<T>(page: RawPage<T>): Paged<T> {
+  return Object.assign(page.items, { nextCursor: page.next_cursor });
+}
+
+function qs(params?: Record<string, string | number | undefined | null>): string {
+  if (!params) return "";
+  const entries = Object.entries(params).filter(([, v]) => v != null) as [string, string][];
+  return entries.length ? "?" + new URLSearchParams(entries).toString() : "";
+}
+
+// Endpoint hỗ trợ cursor pagination — trả Paged<T> (mảng + .nextCursor) thay vì mảng phẳng.
+function getPage<T>(path: string, params?: Record<string, string | number | undefined | null>) {
+  return get<RawPage<T>>(`${path}${qs(params)}`).then(toPaged);
+}
+
 function post<T>(path: string, body?: unknown, auth = true) {
   return request<T>(
     path,
@@ -346,19 +370,26 @@ export const catalogApi = {
 // ─── Student ─────────────────────────────────────────────────────────────────
 
 export const studentApi = {
-  sessions: async (params?: { branchId?: string; from?: string; to?: string }): Promise<ClassSession[]> => {
-    const p: Record<string, string> = {};
-    if (params?.branchId) p.branch_id = params.branchId;
-    if (params?.from) p.from = params.from;
-    if (params?.to) p.to = params.to;
-    const qs = Object.keys(p).length ? "?" + new URLSearchParams(p).toString() : "";
-    const raw = await get<RawStudentSession[]>(`/sessions${qs}`);
-    return raw.map(toStudentSession);
+  sessions: async (params?: {
+    branchId?: string;
+    from?: string;
+    to?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<Paged<ClassSession>> => {
+    const raw = await getPage<RawStudentSession>("/sessions", {
+      branch_id: params?.branchId,
+      from: params?.from,
+      to: params?.to,
+      cursor: params?.cursor,
+      limit: params?.limit,
+    });
+    return Object.assign(raw.map(toStudentSession), { nextCursor: raw.nextCursor });
   },
 
-  myBookings: async (): Promise<Booking[]> => {
-    const raw = await get<RawStudentBooking[]>("/me/bookings");
-    return raw.map(toStudentBooking);
+  myBookings: async (params?: { status?: string; cursor?: string; limit?: number }): Promise<Paged<Booking>> => {
+    const raw = await getPage<RawStudentBooking>("/me/bookings", params);
+    return Object.assign(raw.map(toStudentBooking), { nextCursor: raw.nextCursor });
   },
 
   myCredits: async (): Promise<CreditSummary> => {
@@ -376,12 +407,14 @@ export const studentApi = {
 // ─── Trainer ─────────────────────────────────────────────────────────────────
 
 export const trainerApi = {
-  sessions: async (params?: { from?: string; to?: string }): Promise<ClassSession[]> => {
-    const qs = params ? "?" + new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v != null) as [string, string][]
-    ).toString() : "";
-    const raw = await get<RawTrainerSession[]>(`/trainer/sessions${qs}`);
-    return raw.map(toTrainerSession);
+  sessions: async (params?: {
+    from?: string;
+    to?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<Paged<ClassSession>> => {
+    const raw = await getPage<RawTrainerSession>("/trainer/sessions", params);
+    return Object.assign(raw.map(toTrainerSession), { nextCursor: raw.nextCursor });
   },
 
   students: async (sessionId: string): Promise<Booking[]> => {
@@ -392,10 +425,8 @@ export const trainerApi = {
   markAttendance: (bookingId: string, body: AttendanceBody) =>
     post<void>(`/trainer/bookings/${bookingId}/attendance`, body),
 
-  searchStudents: (q: string) =>
-    get<TrainerStudentSearchResult[]>(
-      `/trainer/students?${new URLSearchParams({ q }).toString()}`,
-    ),
+  searchStudents: (q: string, params?: { cursor?: string; limit?: number }) =>
+    getPage<TrainerStudentSearchResult>("/trainer/students", { q, ...params }),
 
   book: (studentId: string, sessionId: string) =>
     post<{ booking_id: string }>(
@@ -412,12 +443,11 @@ export const adminSessionApi = {
     branch_id?: string;
     trainer_id?: string;
     status?: string;
-  }): Promise<ClassSession[]> => {
-    const qs = params ? "?" + new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v != null) as [string, string][]
-    ).toString() : "";
-    const raw = await get<RawAdminSession[]>(`/admin/sessions${qs}`);
-    return raw.map(toAdminSession);
+    cursor?: string;
+    limit?: number;
+  }): Promise<Paged<ClassSession>> => {
+    const raw = await getPage<RawAdminSession>("/admin/sessions", params);
+    return Object.assign(raw.map(toAdminSession), { nextCursor: raw.nextCursor });
   },
 
   create: (body: CreateSessionBody) =>
@@ -432,7 +462,8 @@ export const adminSessionApi = {
 // ─── Admin — Trainers ─────────────────────────────────────────────────────────
 
 export const adminTrainerApi = {
-  list: () => get<Trainer[]>("/admin/trainers"),
+  list: (params?: { status?: string; q?: string; cursor?: string; limit?: number }) =>
+    getPage<Trainer>("/admin/trainers", params),
   create: (body: CreateTrainerBody) =>
     post<{ trainer_id: string }>("/admin/trainers", body),
   update: (trainerId: string, body: Partial<CreateTrainerBody & { status: string }>) =>
@@ -443,7 +474,8 @@ export const adminTrainerApi = {
 // ─── Admin — Students ─────────────────────────────────────────────────────────
 
 export const adminStudentApi = {
-  list: () => get<Student[]>("/admin/students"),
+  list: (params?: { q?: string; status?: string; cursor?: string; limit?: number }) =>
+    getPage<Student>("/admin/students", params),
 
   create: (body: CreateStudentBody) =>
     post<{ student_id: string }>("/admin/students", body),
@@ -484,12 +516,12 @@ export const adminBookingApi = {
     student_id?: string;
     session_id?: string;
     status?: string;
-  }): Promise<Booking[]> => {
-    const qs = params ? "?" + new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v != null) as [string, string][]
-    ).toString() : "";
-    const raw = await get<RawAdminBooking[]>(`/admin/bookings${qs}`);
-    return raw.map(toAdminBooking);
+    q?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<Paged<Booking>> => {
+    const raw = await getPage<RawAdminBooking>("/admin/bookings", params);
+    return Object.assign(raw.map(toAdminBooking), { nextCursor: raw.nextCursor });
   },
 
   cancel: (bookingId: string) =>
@@ -499,8 +531,17 @@ export const adminBookingApi = {
 // ─── Admin — Haravan ─────────────────────────────────────────────────────────
 
 export const adminHaravanApi = {
-  listMappings: () =>
-    get<HaravanProductMapping[]>("/admin/haravan/product-mappings"),
+  listMappings: (params?: {
+    branch_id?: string;
+    active?: boolean;
+    q?: string;
+    cursor?: string;
+    limit?: number;
+  }) =>
+    getPage<HaravanProductMapping>("/admin/haravan/product-mappings", {
+      ...params,
+      active: params?.active == null ? undefined : String(params.active),
+    }),
 
   createMapping: (body: {
     haravan_product_id?: string;

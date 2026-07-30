@@ -29,7 +29,7 @@ interface Props {
 export default function EditSessionModal({ session, open, onClose, onSaved }: Props) {
   const { data: branches } = useSWR(open ? "/branches" : null, catalogApi.branches);
   const { data: classTypes } = useSWR(open ? "/class-types" : null, catalogApi.classTypes);
-  const { data: trainers } = useSWR(open ? "/admin/trainers" : null, adminTrainerApi.list);
+  const { data: trainers } = useSWR(open ? "/admin/trainers" : null, () => adminTrainerApi.list());
 
   const [branchId, setBranchId] = useState(session.branch_id);
   const [classTypeId, setClassTypeId] = useState(session.class_type_id);
