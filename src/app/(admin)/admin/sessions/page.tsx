@@ -81,6 +81,7 @@ export default function AdminSessionsPage() {
           open={!!editing}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); refresh(); }}
+          onRosterChanged={() => refresh()}
         />
       )}
 

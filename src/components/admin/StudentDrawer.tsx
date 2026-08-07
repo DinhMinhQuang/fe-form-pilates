@@ -10,6 +10,7 @@ import Btn from "@/components/Btn";
 import BookForStudentModal from "@/components/admin/BookForStudentModal";
 import AdjustCreditModal from "@/components/admin/AdjustCreditModal";
 import CreateCreditLotModal from "@/components/admin/CreateCreditLotModal";
+import CancelBookingModal from "@/components/admin/CancelBookingModal";
 
 const LOT_STATUS: Record<string, { label: string; bg: string; color: string }> = {
   active: { label: "Còn hạn", bg: "#EAF5EA", color: "#2E6B2E" },
@@ -34,6 +35,7 @@ export default function StudentDrawer({ student, onClose }: Props) {
   const [showCreateCredit, setShowCreateCredit] = useState(false);
   const [adjustingLot, setAdjustingLot] = useState<AdminCreditLot | null>(null);
   const [disabling, setDisabling] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
 
   const { data: detail, error: detailError, mutate: mutateDetail } = useSWR(
     student ? `/admin/students/${student.id}` : null,
@@ -48,6 +50,13 @@ export default function StudentDrawer({ student, onClose }: Props) {
   function refetch() {
     mutateDetail();
     mutateBookings();
+  }
+
+  async function handleCancelBooking(reason: string, refund: boolean) {
+    if (!cancelTarget) return;
+    await adminBookingApi.cancel(cancelTarget.id, { reason, refund });
+    setCancelTarget(null);
+    refetch();
   }
 
   async function handleToggleStatus() {
@@ -164,14 +173,14 @@ export default function StudentDrawer({ student, onClose }: Props) {
                         style={{ borderBottom: "1px solid var(--cream-dark)" }}
                         onClick={() => setAdjustingLot(lot)}
                       >
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="font-medium text-sm" style={{ color: "var(--charcoal)" }}>{lot.package_name}</div>
                           <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray-light)" }}>
                             {lot.sessions_remaining}/{lot.sessions_total} buổi · HH {new Date(lot.expires_at).toLocaleDateString("vi-VN")}
                             {lot.branch_name ? ` · ${lot.branch_name}` : " · Mọi chi nhánh"}
                           </div>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: badge.bg, color: badge.color }}>
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap flex-shrink-0 ml-3" style={{ background: badge.bg, color: badge.color }}>
                           {badge.label}
                         </span>
                       </li>
@@ -195,17 +204,18 @@ export default function StudentDrawer({ student, onClose }: Props) {
                     <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Buổi tập</th>
                     <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Thời gian</th>
                     <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>TT</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {!bookings ? (
-                    <tr><td colSpan={3} className="px-4 py-6 text-center text-sm" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-sm" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
                   ) : !bookings.length ? (
-                    <EmptyRow colSpan={3} message="Chưa có booking" />
+                    <EmptyRow colSpan={4} message="Chưa có booking" />
                   ) : bookings.slice(0, 30).map((b: Booking) => {
                     const s = BOOKING_STATUS[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
                     return (
-                      <tr key={b.id} style={{ borderBottom: "1px solid var(--cream-dark)" }}>
+                      <tr key={b.id} style={{ borderBottom: "1px solid var(--cream-dark)" }} className="group">
                         <td className="px-4 py-2.5">
                           <div className="font-medium text-xs" style={{ color: "var(--charcoal)" }}>{b.class_type_name}</div>
                           <div className="text-xs" style={{ color: "var(--warm-gray-light)" }}>{b.branch_name}</div>
@@ -215,6 +225,18 @@ export default function StudentDrawer({ student, onClose }: Props) {
                         </td>
                         <td className="px-4 py-2.5">
                           <span className="text-xs px-1.5 py-0.5 rounded-full font-medium" style={{ background: s.bg, color: s.color }}>{s.label}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          {b.status === "booked" && (
+                            <button
+                              type="button"
+                              onClick={() => setCancelTarget(b)}
+                              className="text-xs underline opacity-0 group-hover:opacity-100"
+                              style={{ color: "#B94B4B" }}
+                            >
+                              Huỷ
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -247,6 +269,15 @@ export default function StudentDrawer({ student, onClose }: Props) {
         onClose={() => setAdjustingLot(null)}
         onSaved={() => { setAdjustingLot(null); refetch(); }}
       />
+
+      {cancelTarget && (
+        <CancelBookingModal
+          open={!!cancelTarget}
+          title={`Huỷ booking — ${cancelTarget.class_type_name}`}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={handleCancelBooking}
+        />
+      )}
     </>
   );
 }

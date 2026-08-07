@@ -1,12 +1,15 @@
 import { clearSession, getToken } from "@/lib/auth";
 import type {
   AdjustCreditBody,
+  AdminCancelBookingBody,
+  AdminRescheduleBookingBody,
   AppUser,
   AttendanceBody,
   AuthSession,
   Booking,
   BookingStatus,
   Branch,
+  CancelSessionBody,
   ClassSession,
   ClassType,
   CoursePackage,
@@ -14,6 +17,8 @@ import type {
   CreateSessionBody,
   CreateStudentBody,
   CreateTrainerBody,
+  CreateTrainerSessionBody,
+  CreditHistoryEntry,
   CreditLot,
   CreditLotStatus,
   CreditSummary,
@@ -122,8 +127,11 @@ function put<T>(path: string, body?: unknown) {
   });
 }
 
-function del<T>(path: string) {
-  return request<T>(path, { method: "DELETE" });
+function del<T>(path: string, body?: unknown) {
+  return request<T>(path, {
+    method: "DELETE",
+    body: body ? JSON.stringify(body) : undefined,
+  });
 }
 
 // ─── BE raw types (match exact API response shapes) ───────────────────────────
@@ -161,6 +169,8 @@ interface RawCreditView {
   activated_at: string;
   expires_at: string;
   status: string;
+  branch_id: string | null;
+  branch_name: string | null;
 }
 
 interface RawAdminSession {
@@ -191,17 +201,20 @@ interface RawAdminBooking {
   status: string;
   channel: string;
   booked_at: string;
+  cancellation_reason: string | null;
 }
 
 interface RawTrainerSession {
   id: string;
   class_name: string;
   branch_name: string;
+  trainer_name: string | null;
   start_at: string;
   end_at: string;
   booked_count: number;
   capacity: number;
   status: string;
+  is_mine: boolean;
 }
 
 interface RawStudentInClass {
@@ -284,6 +297,7 @@ function toAdminBooking(r: RawAdminBooking): Booking {
     channel: r.channel,
     booked_at: r.booked_at,
     cancelled_at: null,
+    cancellation_reason: r.cancellation_reason,
   };
 }
 
@@ -297,6 +311,8 @@ function toCreditSummary(raws: RawCreditView[]): CreditSummary {
     activated_at: r.activated_at,
     expires_at: r.expires_at,
     status: r.status as CreditLotStatus,
+    branch_id: r.branch_id,
+    branch_name: r.branch_name,
   }));
   const total_remaining = lots
     .filter((l) => l.status === "active")
@@ -312,12 +328,13 @@ function toTrainerSession(r: RawTrainerSession): ClassSession {
     class_type_id: "",
     class_type_name: r.class_name,
     trainer_id: null,
-    trainer_name: null,
+    trainer_name: r.trainer_name,
     start_at: r.start_at,
     end_at: r.end_at,
     capacity: r.capacity,
     booked_count: r.booked_count,
     status: r.status as ClassSession["status"],
+    is_mine: r.is_mine,
   };
 }
 
@@ -410,10 +427,17 @@ export const trainerApi = {
   sessions: async (params?: {
     from?: string;
     to?: string;
+    branchId?: string;
     cursor?: string;
     limit?: number;
   }): Promise<Paged<ClassSession>> => {
-    const raw = await getPage<RawTrainerSession>("/trainer/sessions", params);
+    const raw = await getPage<RawTrainerSession>("/trainer/sessions", {
+      from: params?.from,
+      to: params?.to,
+      branch_id: params?.branchId,
+      cursor: params?.cursor,
+      limit: params?.limit,
+    });
     return Object.assign(raw.map(toTrainerSession), { nextCursor: raw.nextCursor });
   },
 
@@ -432,6 +456,9 @@ export const trainerApi = {
     post<{ booking_id: string }>(
       `/trainer/students/${studentId}/sessions/${sessionId}/book`,
     ),
+
+  createSession: (body: CreateTrainerSessionBody) =>
+    post<{ session_id: string }>("/trainer/sessions", body),
 };
 
 // ─── Admin — Sessions ─────────────────────────────────────────────────────────
@@ -456,7 +483,8 @@ export const adminSessionApi = {
   update: (sessionId: string, body: Partial<CreateSessionBody & { status: string }>) =>
     patch<void>(`/admin/sessions/${sessionId}`, body),
 
-  cancel: (sessionId: string) => del<void>(`/admin/sessions/${sessionId}`),
+  cancel: (sessionId: string, body?: CancelSessionBody) =>
+    del<void>(`/admin/sessions/${sessionId}`, body),
 };
 
 // ─── Admin — Trainers ─────────────────────────────────────────────────────────
@@ -505,6 +533,9 @@ export const adminStudentApi = {
       `/admin/students/${studentId}/credits/${creditLotId}`,
       body,
     ),
+
+  creditHistory: (studentId: string, creditLotId: string) =>
+    get<CreditHistoryEntry[]>(`/admin/students/${studentId}/credits/${creditLotId}/history`),
 };
 
 // ─── Admin — Bookings ─────────────────────────────────────────────────────────
@@ -524,8 +555,11 @@ export const adminBookingApi = {
     return Object.assign(raw.map(toAdminBooking), { nextCursor: raw.nextCursor });
   },
 
-  cancel: (bookingId: string) =>
-    post<void>(`/admin/bookings/${bookingId}/cancel`),
+  cancel: (bookingId: string, body: AdminCancelBookingBody) =>
+    post<{ refunded: boolean }>(`/admin/bookings/${bookingId}/cancel`, body),
+
+  reschedule: (bookingId: string, body: AdminRescheduleBookingBody) =>
+    post<{ booking_id: string }>(`/admin/bookings/${bookingId}/reschedule`, body),
 };
 
 // ─── Admin — Haravan ─────────────────────────────────────────────────────────

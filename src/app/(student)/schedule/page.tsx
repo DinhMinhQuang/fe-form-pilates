@@ -2,10 +2,15 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { studentApi } from "@/lib/api";
+import { catalogApi, studentApi } from "@/lib/api";
 import type { ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import Btn from "@/components/Btn";
+
+// Học viên tự đặt chỗ phải trước giờ học ít nhất 3 tiếng — cho HLV/lễ tân đủ
+// thời gian chuẩn bị. Chỉ áp dụng ở client cho học viên; admin/HLV đặt hộ
+// không bị chặn bởi rule này.
+const BOOK_CUTOFF_MS = 3 * 60 * 60 * 1000;
 
 const DAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const DAY_LONG  = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
@@ -38,16 +43,28 @@ export default function SchedulePage() {
     return d === 0 ? 6 : d - 1; // 0=Mon … 6=Sun
   });
   const [classFilter, setClassFilter] = useState("");
+  const [branchId, setBranchId] = useState("");
   const [booking, setBooking] = useState<string | null>(null);
   const [bookError, setBookError] = useState<Error | null>(null);
+
+  const { data: branches } = useSWR("/branches", catalogApi.branches);
 
   const days = useMemo(() => getWeekDays(weekOffset), [weekOffset]);
   const from = days[0].toISOString();
   const to   = new Date(days[6].getTime() + 86400000).toISOString();
 
   const { data: sessions, isLoading, error, mutate } = useSWR(
-    ["/sessions", from, to],
-    () => studentApi.sessions({ from, to }),
+    ["/sessions", from, to, branchId],
+    () => studentApi.sessions({ from, to, branchId: branchId || undefined }),
+  );
+
+  const { data: myBookings, mutate: mutateBookings } = useSWR(
+    "/me/bookings?status=booked",
+    () => studentApi.myBookings({ status: "booked" }),
+  );
+  const bookedSessionIds = useMemo(
+    () => new Set((myBookings ?? []).map((b) => b.session_id)),
+    [myBookings],
   );
 
   // Unique class type names
@@ -76,6 +93,7 @@ export default function SchedulePage() {
     try {
       await studentApi.book(sessionId);
       mutate();
+      mutateBookings();
     } catch (err) {
       setBookError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -94,6 +112,21 @@ export default function SchedulePage() {
           Chọn buổi và đặt chỗ ngay
         </p>
       </div>
+
+      {/* Branch filter */}
+      {branches && branches.length > 1 && (
+        <div className="mb-4">
+          <select
+            className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border"
+            style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)", appearance: "none" }}
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+          >
+            <option value="">Tất cả chi nhánh</option>
+            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+      )}
 
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-4 px-1">
@@ -205,6 +238,8 @@ export default function SchedulePage() {
               const full   = s.booked_count >= s.capacity;
               const durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
               const isBooking = booking === s.id;
+              const alreadyBooked = bookedSessionIds.has(s.id);
+              const tooLate = !passed && !alreadyBooked && start.getTime() - now.getTime() < BOOK_CUTOFF_MS;
 
               const dayLabel = start.toLocaleDateString("vi-VN", { weekday: "long" });
               const dateLabel = `${String(start.getDate()).padStart(2,"0")}/${String(start.getMonth()+1).padStart(2,"0")}`;
@@ -229,6 +264,20 @@ export default function SchedulePage() {
                         style={{ color: "var(--warm-gray)", borderColor: "var(--sand)", fontSize: 10 }}
                       >
                         Đã qua
+                      </span>
+                    ) : alreadyBooked ? (
+                      <span
+                        className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5"
+                        style={{ color: "var(--white)", background: "#2E6B2E", fontSize: 10 }}
+                      >
+                        Đã đặt
+                      </span>
+                    ) : tooLate ? (
+                      <span
+                        className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5 border"
+                        style={{ color: "var(--warm-gray)", borderColor: "var(--sand)", fontSize: 10 }}
+                      >
+                        Đã đóng đặt chỗ
                       </span>
                     ) : full ? (
                       <span
@@ -283,18 +332,23 @@ export default function SchedulePage() {
                   </div>
 
                   {/* Book button */}
-                  {!passed && !full && (
+                  {!passed && (alreadyBooked || (!full && !tooLate)) && (
                     <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--cream-dark)" }}>
                       <Btn
-                        variant="accent"
+                        variant={alreadyBooked ? "ghost" : "accent"}
                         size="sm"
-                        disabled={isBooking}
+                        disabled={isBooking || alreadyBooked}
                         onClick={() => handleBook(s.id)}
                         className="w-full tracking-widest uppercase"
                       >
-                        {isBooking ? "Đang đặt..." : "Đặt chỗ"}
+                        {alreadyBooked ? "Đã đặt" : isBooking ? "Đang đặt..." : "Đặt chỗ"}
                       </Btn>
                     </div>
+                  )}
+                  {!passed && !alreadyBooked && tooLate && (
+                    <p className="mt-3 pt-3 text-xs" style={{ borderTop: "1px solid var(--cream-dark)", color: "var(--warm-gray-light)" }}>
+                      Chỉ nhận đặt chỗ trước giờ học ít nhất 3 tiếng. Vui lòng liên hệ studio nếu cần hỗ trợ.
+                    </p>
                   )}
                 </div>
               );

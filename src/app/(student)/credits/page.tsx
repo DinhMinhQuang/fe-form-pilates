@@ -77,6 +77,9 @@ export default function CreditsPage() {
                         <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray)" }}>
                           Hết hạn {new Date(lot.expires_at).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
                         </div>
+                        <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray)" }}>
+                          Áp dụng: {lot.branch_name ?? "Mọi chi nhánh"}
+                        </div>
                         <ProgressBar used={used} total={lot.sessions_total} />
                       </div>
                       <div className="flex-shrink-0 text-right">
