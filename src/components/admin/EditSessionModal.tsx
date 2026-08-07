@@ -5,13 +5,105 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
-import { adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
-import type { ClassSession } from "@/types";
+import { adminBookingApi, adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
+import type { Booking, ClassSession } from "@/types";
+import CancelBookingModal from "@/components/admin/CancelBookingModal";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
 const selectStyle = { ...inputStyle, appearance: "none" as const };
 const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
+
+const BOOKING_STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
+  booked:             { label: "Đã đặt",  bg: "#EAF5EA", color: "#2E6B2E" },
+  attended:           { label: "Đã học",  bg: "#EEF2FF", color: "#3730A3" },
+  cancelled_refunded: { label: "Đã huỷ",  bg: "#FBF0F0", color: "#B94B4B" },
+  no_show:            { label: "Vắng",    bg: "#FEF9E7", color: "#7A5C00" },
+};
+
+function SessionRoster({ sessionId, onChanged }: { sessionId: string; onChanged: () => void }) {
+  const { data: bookings, isLoading, error, mutate } = useSWR(
+    ["/admin/bookings", sessionId],
+    () => adminBookingApi.list({ session_id: sessionId, limit: 100 }),
+  );
+  const [rosterError, setRosterError] = useState<Error | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+
+  async function handleCancel(reason: string, refund: boolean) {
+    if (!cancelTarget) return;
+    setRosterError(null);
+    try {
+      await adminBookingApi.cancel(cancelTarget.id, { reason, refund });
+      setCancelTarget(null);
+      await mutate();
+      onChanged();
+    } catch (err) {
+      setRosterError(err instanceof Error ? err : new Error(String(err)));
+      throw err;
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
+        Danh sách học viên đã đặt
+      </span>
+      {rosterError && <FormError error={rosterError} />}
+      {error && <FormError error={error} />}
+      <div className="rounded-lg border overflow-hidden" style={{ borderColor: "var(--sand)" }}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
+              <th className="text-left px-3 py-2 text-xs font-medium uppercase" style={{ color: "var(--warm-gray)" }}>Học viên</th>
+              <th className="text-left px-3 py-2 text-xs font-medium uppercase" style={{ color: "var(--warm-gray)" }}>SĐT</th>
+              <th className="text-left px-3 py-2 text-xs font-medium uppercase" style={{ color: "var(--warm-gray)" }}>Trạng thái</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={4} className="px-3 py-4 text-center text-xs" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</td></tr>
+            ) : !bookings?.length ? (
+              <tr><td colSpan={4} className="px-3 py-4 text-center text-xs" style={{ color: "var(--warm-gray-light)" }}>Chưa có học viên đăng ký</td></tr>
+            ) : bookings.map((b) => {
+              const s = BOOKING_STATUS_MAP[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
+              return (
+                <tr key={b.id} style={{ borderBottom: "1px solid var(--cream-dark)" }}>
+                  <td className="px-3 py-2 font-medium" style={{ color: "var(--charcoal)" }}>{b.student_name}</td>
+                  <td className="px-3 py-2" style={{ color: "var(--warm-gray)" }}>{b.student_phone ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: s.bg, color: s.color }}>{s.label}</span>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {b.status === "booked" && (
+                      <button
+                        type="button"
+                        onClick={() => setCancelTarget(b)}
+                        className="text-xs underline"
+                        style={{ color: "#B94B4B" }}
+                      >
+                        Huỷ
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {cancelTarget && (
+        <CancelBookingModal
+          open={!!cancelTarget}
+          title={`Huỷ booking — ${cancelTarget.student_name}`}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={handleCancel}
+        />
+      )}
+    </div>
+  );
+}
 
 function toLocalInput(iso: string) {
   const d = new Date(iso);
@@ -24,9 +116,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onRosterChanged?: () => void;
 }
 
-export default function EditSessionModal({ session, open, onClose, onSaved }: Props) {
+export default function EditSessionModal({ session, open, onClose, onSaved, onRosterChanged }: Props) {
   const { data: branches } = useSWR(open ? "/branches" : null, catalogApi.branches);
   const { data: classTypes } = useSWR(open ? "/class-types" : null, catalogApi.classTypes);
   const { data: trainers } = useSWR(open ? "/admin/trainers" : null, () => adminTrainerApi.list());
@@ -38,7 +131,7 @@ export default function EditSessionModal({ session, open, onClose, onSaved }: Pr
   const [endAt, setEndAt] = useState(toLocalInput(session.end_at));
   const [capacity, setCapacity] = useState(session.capacity);
   const [loading, setLoading] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
+  const [showCancelSession, setShowCancelSession] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -104,17 +197,13 @@ export default function EditSessionModal({ session, open, onClose, onSaved }: Pr
     }
   }
 
-  async function handleCancelSession() {
-    if (!window.confirm("Huỷ buổi tập này? Tất cả học viên đã đặt sẽ được hoàn buổi.")) return;
-    setCancelling(true);
-    setError(null);
+  async function handleCancelSession(reason: string) {
     try {
-      await adminSessionApi.cancel(session.id);
+      await adminSessionApi.cancel(session.id, { reason });
+      setShowCancelSession(false);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setCancelling(false);
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 
@@ -168,11 +257,15 @@ export default function EditSessionModal({ session, open, onClose, onSaved }: Pr
           </p>
         </div>
 
+        {session.booked_count > 0 && (
+          <SessionRoster sessionId={session.id} onChanged={() => onRosterChanged?.()} />
+        )}
+
         <FormError error={error} />
 
         <div className="flex gap-2 pt-1">
-          <Btn variant="danger" type="button" disabled={cancelling || session.status !== "scheduled"} onClick={handleCancelSession}>
-            {cancelling ? "Đang huỷ..." : "Huỷ buổi tập"}
+          <Btn variant="danger" type="button" disabled={session.status !== "scheduled"} onClick={() => setShowCancelSession(true)}>
+            Huỷ buổi tập
           </Btn>
           <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Đóng</Btn>
           <Btn variant="primary" className="flex-1" type="submit" disabled={loading || session.status !== "scheduled"}>
@@ -180,6 +273,18 @@ export default function EditSessionModal({ session, open, onClose, onSaved }: Pr
           </Btn>
         </div>
       </form>
+
+      {showCancelSession && (
+        <CancelBookingModal
+          open={showCancelSession}
+          title="Huỷ buổi tập"
+          description="Tất cả học viên đã đặt trong buổi này sẽ được hoàn buổi tự động."
+          showRefundOption={false}
+          confirmLabel="Huỷ buổi tập"
+          onClose={() => setShowCancelSession(false)}
+          onConfirm={(reason) => handleCancelSession(reason)}
+        />
+      )}
     </Modal>
   );
 }

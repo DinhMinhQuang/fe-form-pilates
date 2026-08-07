@@ -119,9 +119,15 @@ function BookingCard({ booking: b, onCancel, cancelling }: {
           <span className="text-xs" style={{ color: "var(--warm-gray)" }}>{st.label}</span>
         </div>
         {b.status === "booked" && (
-          <Btn variant="danger" size="sm" disabled={cancelling === b.id} onClick={() => onCancel(b.id)}>
-            {cancelling === b.id ? "..." : "Huỷ"}
-          </Btn>
+          b.cancellable === false ? (
+            <span className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
+              Trong 6h, không thể huỷ
+            </span>
+          ) : (
+            <Btn variant="danger" size="sm" disabled={cancelling === b.id} onClick={() => onCancel(b.id)}>
+              {cancelling === b.id ? "..." : "Huỷ"}
+            </Btn>
+          )
         )}
       </div>
     </div>

@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { trainerApi } from "@/lib/api";
+import { catalogApi, trainerApi } from "@/lib/api";
 import type { Booking, ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
 import TrainerBookModal from "@/components/TrainerBookModal";
+import CreateTrainerSessionModal from "@/components/CreateTrainerSessionModal";
 
 const DAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -33,9 +34,9 @@ function sameDay(a: Date, b: Date) {
 }
 
 function AttendanceRow({ booking, onMarked }: { booking: Booking; onMarked: () => void }) {
-  const [loading, setLoading] = useState<"attended" | "no_show" | null>(null);
+  const [loading, setLoading] = useState<"attended" | "no_show" | "booked" | null>(null);
 
-  async function mark(status: "attended" | "no_show") {
+  async function mark(status: "attended" | "no_show" | "booked") {
     setLoading(status);
     try {
       await trainerApi.markAttendance(booking.id, { status });
@@ -52,6 +53,24 @@ function AttendanceRow({ booking, onMarked }: { booking: Booking; onMarked: () =
   };
 
   const badge = STATUS_BADGE[booking.status];
+  if (badge && (booking.status === "attended" || booking.status === "no_show")) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: badge.bg, color: badge.color }}>
+          {badge.label}
+        </span>
+        <button
+          type="button"
+          disabled={!!loading}
+          onClick={() => mark("booked")}
+          className="text-xs underline"
+          style={{ color: "var(--warm-gray)" }}
+        >
+          {loading === "booked" ? "..." : "Bỏ điểm danh"}
+        </button>
+      </div>
+    );
+  }
   if (badge) {
     return (
       <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: badge.bg, color: badge.color }}>
@@ -126,14 +145,18 @@ export default function TrainerPage() {
   });
   const [openId, setOpenId] = useState<string | null>(null);
   const [bookingSession, setBookingSession] = useState<ClassSession | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [branchId, setBranchId] = useState("");
+
+  const { data: branches } = useSWR("/branches", catalogApi.branches);
 
   const days = useMemo(() => getWeekDays(weekOffset), [weekOffset]);
   const from = days[0].toISOString();
   const to   = new Date(days[6].getTime() + 86400000).toISOString();
 
   const { data: sessions, isLoading, error, mutate } = useSWR(
-    ["/trainer/sessions", from, to],
-    () => trainerApi.sessions({ from, to }),
+    ["/trainer/sessions", from, to, branchId],
+    () => trainerApi.sessions({ from, to, branchId: branchId || undefined }),
   );
 
   const todaySessions = useMemo(() => {
@@ -154,6 +177,24 @@ export default function TrainerPage() {
         <p className="text-xs mt-1 tracking-wide uppercase" style={{ color: "var(--warm-gray)" }}>
           Chọn buổi để điểm danh học viên
         </p>
+      </div>
+
+      {/* Branch filter + create session */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <select
+          className="rounded-lg px-3 py-2 text-xs outline-none border"
+          style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)", appearance: "none" }}
+          value={branchId}
+          onChange={(e) => setBranchId(e.target.value)}
+        >
+          <option value="">Lịch của tôi (mọi chi nhánh)</option>
+          {branches?.map((b) => (
+            <option key={b.id} value={b.id}>Lịch tổng — {b.name}</option>
+          ))}
+        </select>
+        <Btn size="sm" variant="ghost" onClick={() => setCreating(true)}>
+          + Tạo lớp Private/Duo
+        </Btn>
       </div>
 
       {/* Week navigation */}
@@ -246,6 +287,8 @@ export default function TrainerPage() {
               const dateLabel = `${String(start.getDate()).padStart(2,"0")}/${String(start.getMonth()+1).padStart(2,"0")}`;
               const timeStart = start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
               const timeEnd   = end.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+              // Lịch tổng chi nhánh: chỉ xem giờ trống, không xem roster/điểm danh của lớp người khác.
+              const isMine = s.is_mine ?? true;
 
               return (
                 <div
@@ -257,11 +300,11 @@ export default function TrainerPage() {
                     opacity: passed || cancelled ? 0.65 : 1,
                   }}
                 >
-                  {/* Card header — clickable */}
+                  {/* Card header — clickable only for own sessions (attendance/roster) */}
                   <div
-                    className={cancelled ? "relative p-4" : "relative p-4 cursor-pointer"}
+                    className={cancelled || !isMine ? "relative p-4" : "relative p-4 cursor-pointer"}
                     style={{ background: open ? "var(--cream)" : "var(--white)" }}
-                    onClick={() => !cancelled && setOpenId(open ? null : s.id)}
+                    onClick={() => !cancelled && isMine && setOpenId(open ? null : s.id)}
                   >
                     {/* Status badge */}
                     <div className="absolute top-4 right-4">
@@ -290,7 +333,14 @@ export default function TrainerPage() {
                     </div>
 
                     {/* Branch */}
-                    <div className="text-xs mb-1" style={{ color: "var(--warm-gray)" }}>{s.branch_name}</div>
+                    <div className="text-xs mb-1" style={{ color: "var(--warm-gray)" }}>
+                      {s.branch_name}
+                      {!isMine && s.trainer_name && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--cream-dark)", color: "var(--warm-gray)" }}>
+                          HLV: {s.trainer_name}
+                        </span>
+                      )}
+                    </div>
 
                     {/* Date & time */}
                     <div className="text-xs mb-1" style={{ color: "var(--warm-gray)" }}>
@@ -303,7 +353,7 @@ export default function TrainerPage() {
                     </div>
 
                     {/* Attendance toggle */}
-                    {!passed && !cancelled && (
+                    {!passed && !cancelled && isMine && (
                       <div className="mt-3 pt-3 flex items-center justify-between"
                         style={{ borderTop: "1px solid var(--cream-dark)" }}>
                         <span className="text-xs font-semibold uppercase tracking-widest"
@@ -317,7 +367,7 @@ export default function TrainerPage() {
                     )}
 
                     {/* Book on behalf of a student (private/duo) */}
-                    {!passed && !cancelled && s.booked_count < s.capacity && (
+                    {!passed && !cancelled && isMine && s.booked_count < s.capacity && (
                       <div className="mt-2">
                         <Btn
                           size="sm"
@@ -348,6 +398,12 @@ export default function TrainerPage() {
           onBooked={() => { setBookingSession(null); mutate(); }}
         />
       )}
+
+      <CreateTrainerSessionModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={() => { setCreating(false); mutate(); }}
+      />
     </div>
   );
 }

@@ -73,6 +73,7 @@ export interface ClassSession {
   capacity: number;
   booked_count: number;
   status: SessionStatus;
+  is_mine?: boolean;
 }
 
 // ─── Credits ──────────────────────────────────────────────────────────────────
@@ -88,6 +89,8 @@ export interface CreditLot {
   activated_at: string;
   expires_at: string;
   status: CreditLotStatus;
+  branch_id: string | null;
+  branch_name: string | null;
 }
 
 export interface CreditSummary {
@@ -119,6 +122,7 @@ export interface Booking {
   booked_at: string;
   cancelled_at: string | null;
   cancellable?: boolean;
+  cancellation_reason?: string | null;
 }
 
 // ─── Trainer ──────────────────────────────────────────────────────────────────
@@ -223,6 +227,36 @@ export interface TrainerStudentSearchResult {
   phone: string | null;
 }
 
+export interface CreditHistoryEntry {
+  kind: "credit" | "expiry";
+  at: string;
+  reason: string;
+  detail: { delta?: number; balance_after?: number; old_expires_at?: string; new_expires_at?: string };
+  actor_name: string | null;
+}
+
 export interface AttendanceBody {
-  status: "attended" | "no_show";
+  status: "attended" | "no_show" | "booked";
+}
+
+export interface CreateTrainerSessionBody {
+  branch_id: string;
+  class_type_id: string;
+  start_at: string;
+  end_at: string;
+  capacity?: number;
+}
+
+export interface AdminCancelBookingBody {
+  reason: string;
+  refund?: boolean;
+}
+
+export interface AdminRescheduleBookingBody {
+  new_session_id: string;
+  reason: string;
+}
+
+export interface CancelSessionBody {
+  reason?: string;
 }

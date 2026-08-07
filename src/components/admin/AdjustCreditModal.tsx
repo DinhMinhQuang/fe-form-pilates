@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import { adminStudentApi } from "@/lib/api";
-import type { CreditLot } from "@/types";
+import { dateInputToEndOfDayIso, toDateInputValue } from "@/lib/date";
+import type { CreditHistoryEntry, CreditLot } from "@/types";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
@@ -27,7 +29,7 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
   useEffect(() => {
     if (lot) {
       setDelta(0);
-      setExpiresAt(lot.expires_at.slice(0, 10));
+      setExpiresAt(toDateInputValue(lot.expires_at));
       setReason("");
       setError(null);
     }
@@ -45,9 +47,10 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
     setError(null);
     setLoading(true);
     try {
+      const expiryChanged = expiresAt !== toDateInputValue(lot.expires_at);
       await adminStudentApi.adjustCredit(studentId, lot.id, {
-        delta,
-        expires_at: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+        delta: delta !== 0 ? delta : undefined,
+        expires_at: expiryChanged && expiresAt ? dateInputToEndOfDayIso(expiresAt) : undefined,
         reason,
       });
       onSaved();
@@ -59,6 +62,11 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
   }
 
   const preview = lot ? lot.sessions_remaining + delta : 0;
+
+  const { data: history, isLoading: historyLoading, error: historyError } = useSWR(
+    lot ? ["/admin/credits/history", studentId, lot.id] : null,
+    () => adminStudentApi.creditHistory(studentId, lot!.id),
+  );
 
   return (
     <Modal title="Điều chỉnh gói tập" open={!!lot} onClose={onClose}>
@@ -125,11 +133,45 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
 
           <div className="flex gap-2 pt-1">
             <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Huỷ</Btn>
-            <Btn variant="primary" className="flex-1" type="submit" disabled={loading || (delta === 0 && expiresAt === lot.expires_at.slice(0, 10))}>
+            <Btn variant="primary" className="flex-1" type="submit" disabled={loading || (delta === 0 && expiresAt === toDateInputValue(lot.expires_at))}>
               {loading ? "Đang lưu..." : "Xác nhận"}
             </Btn>
           </div>
         </form>
+      )}
+
+      {lot && (
+        <div className="mt-5 pt-4" style={{ borderTop: "1px solid var(--sand)" }}>
+          <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--warm-gray)" }}>
+            Lịch sử điều chỉnh
+          </h3>
+          {historyError && <FormError error={historyError} />}
+          {historyLoading ? (
+            <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</p>
+          ) : !history?.length ? (
+            <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>Chưa có thay đổi nào</p>
+          ) : (
+            <ul className="flex flex-col gap-2.5 max-h-56 overflow-y-auto pr-1">
+              {history.map((h: CreditHistoryEntry, i: number) => (
+                <li key={i} className="text-xs" style={{ borderLeft: "2px solid var(--sand)", paddingLeft: 10 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium" style={{ color: "var(--charcoal)" }}>
+                      {h.kind === "credit"
+                        ? `${(h.detail.delta ?? 0) >= 0 ? "+" : ""}${h.detail.delta} buổi (còn ${h.detail.balance_after})`
+                        : `Đổi hạn dùng: ${h.detail.old_expires_at ? new Date(h.detail.old_expires_at).toLocaleDateString("vi-VN") : "?"} → ${h.detail.new_expires_at ? new Date(h.detail.new_expires_at).toLocaleDateString("vi-VN") : "?"}`}
+                    </span>
+                    <span style={{ color: "var(--warm-gray-light)" }}>
+                      {new Date(h.at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <div style={{ color: "var(--warm-gray)" }}>
+                    {h.reason}{h.actor_name ? ` — ${h.actor_name}` : ""}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </Modal>
   );
