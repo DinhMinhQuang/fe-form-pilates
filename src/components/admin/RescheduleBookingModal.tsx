@@ -5,12 +5,12 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
+import Select from "@/components/Select";
 import { adminBookingApi, adminSessionApi } from "@/lib/api";
 import type { Booking } from "@/types";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
-const selectStyle = { ...inputStyle, appearance: "none" as const };
 
 interface Props {
   booking: Booking;
@@ -67,14 +67,15 @@ export default function RescheduleBookingModal({ booking, open, onClose, onResch
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Buổi tập mới <span style={{ color: "var(--accent)" }}>*</span>
           </label>
-          <select className={inputClass} style={selectStyle} value={newSessionId} onChange={(e) => setNewSessionId(e.target.value)}>
-            <option value="">Chọn buổi tập</option>
-            {candidates?.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.class_type_name} · {s.branch_name} · {new Date(s.start_at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} ({s.capacity - s.booked_count} chỗ trống)
-              </option>
-            ))}
-          </select>
+          <Select
+            value={newSessionId}
+            onChange={setNewSessionId}
+            placeholder="Chọn buổi tập"
+            options={(candidates ?? []).map((s) => ({
+              value: s.id,
+              label: `${s.class_type_name} · ${s.branch_name} · ${new Date(s.start_at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} (${s.capacity - s.booked_count} chỗ trống)`,
+            }))}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

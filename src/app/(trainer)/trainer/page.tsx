@@ -9,6 +9,7 @@ import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
 import TrainerBookModal from "@/components/TrainerBookModal";
 import CreateTrainerSessionModal from "@/components/CreateTrainerSessionModal";
+import Select from "@/components/Select";
 
 const DAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -181,17 +182,16 @@ export default function TrainerPage() {
 
       {/* Branch filter + create session */}
       <div className="flex items-center justify-between gap-3 mb-4">
-        <select
-          className="rounded-lg px-3 py-2 text-xs outline-none border"
-          style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)", appearance: "none" }}
-          value={branchId}
-          onChange={(e) => setBranchId(e.target.value)}
-        >
-          <option value="">Lịch của tôi (mọi chi nhánh)</option>
-          {branches?.map((b) => (
-            <option key={b.id} value={b.id}>Lịch tổng — {b.name}</option>
-          ))}
-        </select>
+        <div className="w-64">
+          <Select
+            value={branchId}
+            onChange={setBranchId}
+            options={[
+              { value: "", label: "Lịch của tôi (mọi chi nhánh)" },
+              ...(branches ?? []).map((b) => ({ value: b.id, label: `Lịch tổng — ${b.name}` })),
+            ]}
+          />
+        </div>
         <Btn size="sm" variant="ghost" onClick={() => setCreating(true)}>
           + Tạo lớp Private/Duo
         </Btn>

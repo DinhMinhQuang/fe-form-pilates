@@ -5,6 +5,7 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
+import DatePicker from "@/components/DatePicker";
 import { adminStudentApi } from "@/lib/api";
 import { dateInputToEndOfDayIso, toDateInputValue } from "@/lib/date";
 import type { CreditHistoryEntry, CreditLot } from "@/types";
@@ -102,15 +103,7 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Ngày hết hạn
             </label>
-            <input
-              type="date"
-              className={inputClass}
-              style={inputStyle}
-              value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-            />
+            <DatePicker value={expiresAt} onChange={setExpiresAt} />
           </div>
 
           {/* Reason */}

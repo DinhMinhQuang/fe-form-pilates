@@ -5,6 +5,7 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
+import Select from "@/components/Select";
 import { adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
@@ -169,8 +170,6 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
     }
   }
 
-  const selectStyle = { ...inputStyle, appearance: "none" as const };
-
   return (
     <Modal title="Thêm buổi tập" open={open} onClose={handleClose}>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -179,35 +178,25 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Chi nhánh <span style={{ color: "var(--accent)" }}>*</span>
             </label>
-            <select
-              className={inputClass} style={selectStyle}
-              value={branchId} onChange={(e) => handleBranchChange(e.target.value)}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-            >
-              <option value="">Chọn chi nhánh</option>
-              {branches?.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+            <Select
+              value={branchId}
+              onChange={handleBranchChange}
+              placeholder="Chọn chi nhánh"
+              options={(branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Loại lớp <span style={{ color: "var(--accent)" }}>*</span>
             </label>
-            <select
-              className={inputClass} style={selectStyle}
-              value={classTypeId} onChange={(e) => handleClassTypeChange(e.target.value)}
+            <Select
+              value={classTypeId}
+              onChange={handleClassTypeChange}
               disabled={!branchId}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-            >
-              <option value="">{branchId ? "Chọn loại lớp" : "Chọn chi nhánh trước"}</option>
-              {availableClassTypes?.map((ct) => (
-                <option key={ct.id} value={ct.id}>{ct.name} ({ct.default_capacity})</option>
-              ))}
-            </select>
+              placeholder={branchId ? "Chọn loại lớp" : "Chọn chi nhánh trước"}
+              options={(availableClassTypes ?? []).map((ct) => ({ value: ct.id, label: `${ct.name} (${ct.default_capacity})` }))}
+            />
           </div>
         </div>
 
@@ -215,17 +204,12 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Huấn luyện viên <span style={{ color: "var(--accent)" }}>*</span>
           </label>
-          <select
-            className={inputClass} style={selectStyle}
-            value={trainerId} onChange={(e) => setTrainerId(e.target.value)}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-          >
-            <option value="">Chọn huấn luyện viên</option>
-            {trainers?.map((t) => (
-              <option key={t.id} value={t.id}>{t.full_name}</option>
-            ))}
-          </select>
+          <Select
+            value={trainerId}
+            onChange={setTrainerId}
+            placeholder="Chọn huấn luyện viên"
+            options={(trainers ?? []).map((t) => ({ value: t.id, label: t.full_name }))}
+          />
           {trainerId && !!trainerSchedule?.length && (
             <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
               Lịch dạy sắp tới:{" "}
@@ -269,18 +253,17 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Sức chứa <span style={{ color: "var(--accent)" }}>*</span>
           </label>
-          <select
-            className={inputClass} style={selectStyle}
-            value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}
+          <Select
+            value={String(capacity)}
+            onChange={(v) => setCapacity(Number(v))}
             disabled={!classTypeId}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-          >
-            <option value={1}>1 (Private)</option>
-            <option value={2}>2 (Duo)</option>
-            <option value={3}>3 (Trio)</option>
-            <option value={6}>6 (Nhóm)</option>
-          </select>
+            options={[
+              { value: "1", label: "1 (Private)" },
+              { value: "2", label: "2 (Duo)" },
+              { value: "3", label: "3 (Trio)" },
+              { value: "6", label: "6 (Nhóm)" },
+            ]}
+          />
           <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
             Tự động theo loại lớp, có thể đổi nếu cần.
           </p>
