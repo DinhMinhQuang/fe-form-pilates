@@ -10,6 +10,8 @@ import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import RescheduleBookingModal from "@/components/admin/RescheduleBookingModal";
 import CancelBookingModal from "@/components/admin/CancelBookingModal";
+import Select from "@/components/Select";
+import DatePicker from "@/components/DatePicker";
 import { dateInputToEndOfDayIso, dateInputToIso } from "@/lib/date";
 
 const STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -105,31 +107,36 @@ export default function AdminBookingsPage() {
           className={`${inputClass} w-full max-w-xs`}
           style={inputStyle}
         />
-        <select
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); resetPage(); }}
-          className={inputClass}
-          style={{ ...inputStyle, appearance: "none" }}
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => { setFrom(e.target.value); resetPage(); }}
-          className={inputClass}
-          style={inputStyle}
-        />
+        <div className="w-48">
+          <Select
+            value={status}
+            onChange={(v) => { setStatus(v); resetPage(); }}
+            options={STATUS_OPTIONS}
+          />
+        </div>
+        <div className="w-40">
+          <DatePicker
+            value={from}
+            onChange={(v) => {
+              setFrom(v);
+              // Đến ngày không được đứng trước Từ ngày mới chọn — tránh gửi
+              // khoảng ngày ngược lên API (from > to bị backend từ chối).
+              if (v && to && to < v) setTo(v);
+              resetPage();
+            }}
+            placeholder="Từ ngày"
+            toDate={to || undefined}
+          />
+        </div>
         <span className="self-center text-sm" style={{ color: "var(--warm-gray-light)" }}>đến</span>
-        <input
-          type="date"
-          value={to}
-          onChange={(e) => { setTo(e.target.value); resetPage(); }}
-          className={inputClass}
-          style={inputStyle}
-        />
+        <div className="w-40">
+          <DatePicker
+            value={to}
+            onChange={(v) => { setTo(v); resetPage(); }}
+            placeholder="Đến ngày"
+            fromDate={from || undefined}
+          />
+        </div>
       </div>
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}

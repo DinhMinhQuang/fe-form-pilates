@@ -5,12 +5,11 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
+import Select from "@/components/Select";
 import { catalogApi, trainerApi } from "@/lib/api";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
-const selectStyle = { ...inputStyle, appearance: "none" as const };
-
 const START_OFFSET_HOURS = 1;
 const DEFAULT_DURATION_MINUTES = 55;
 const MAX_SESSION_DURATION_MS = 3 * 60 * 60 * 1000;
@@ -133,26 +132,28 @@ export default function CreateTrainerSessionModal({ open, onClose, onCreated }: 
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Chi nhánh <span style={{ color: "var(--accent)" }}>*</span>
             </label>
-            <select className={inputClass} style={selectStyle} value={branchId} onChange={(e) => handleBranchChange(e.target.value)}>
-              <option value="">Chọn chi nhánh</option>
-              {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <Select
+              value={branchId}
+              onChange={handleBranchChange}
+              placeholder="Chọn chi nhánh"
+              options={(branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Loại lớp <span style={{ color: "var(--accent)" }}>*</span>
             </label>
-            <select
-              className={inputClass} style={selectStyle}
-              value={classTypeId} onChange={(e) => handleClassTypeChange(e.target.value)}
+            <Select
+              value={classTypeId}
+              onChange={handleClassTypeChange}
               disabled={!branchId}
-            >
-              <option value="">{branchId ? "Chọn loại lớp" : "Chọn chi nhánh trước"}</option>
-              {availableClassTypes?.map((ct) => (
-                <option key={ct.id} value={ct.id}>{ct.name} ({ct.category === "duo" ? "Duo, 2 người" : "Private, 1 người"})</option>
-              ))}
-            </select>
+              placeholder={branchId ? "Chọn loại lớp" : "Chọn chi nhánh trước"}
+              options={(availableClassTypes ?? []).map((ct) => ({
+                value: ct.id,
+                label: `${ct.name} (${ct.category === "duo" ? "Duo, 2 người" : "Private, 1 người"})`,
+              }))}
+            />
             {branchId && !availableClassTypes?.length && (
               <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
                 Chi nhánh này chưa có loại lớp Private/Duo nào.

@@ -6,6 +6,7 @@ import { catalogApi, studentApi } from "@/lib/api";
 import type { ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
 import Btn from "@/components/Btn";
+import Select from "@/components/Select";
 
 // Học viên tự đặt chỗ phải trước giờ học ít nhất 3 tiếng — cho HLV/lễ tân đủ
 // thời gian chuẩn bị. Chỉ áp dụng ở client cho học viên; admin/HLV đặt hộ
@@ -116,15 +117,11 @@ export default function SchedulePage() {
       {/* Branch filter */}
       {branches && branches.length > 1 && (
         <div className="mb-4">
-          <select
-            className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border"
-            style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)", appearance: "none" }}
+          <Select
             value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-          >
-            <option value="">Tất cả chi nhánh</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+            onChange={setBranchId}
+            options={[{ value: "", label: "Tất cả chi nhánh" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
         </div>
       )}
 

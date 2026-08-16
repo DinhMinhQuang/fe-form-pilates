@@ -521,6 +521,12 @@ export const adminStudentApi = {
       `/admin/students/${studentId}/sessions/${sessionId}/book`,
     ),
 
+  /** Ghi nhận học viên đã tập một buổi đã/đang diễn ra (walk-in) — trừ credit và lưu lịch sử, không kiểm tra thời gian. */
+  bookAttended: (studentId: string, sessionId: string) =>
+    post<{ booking_id: string }>(
+      `/admin/students/${studentId}/sessions/${sessionId}/book-attended`,
+    ),
+
   createCredit: (studentId: string, body: CreateCreditLotBody) =>
     post<{ lot_id: string }>(`/admin/students/${studentId}/credits`, body),
 

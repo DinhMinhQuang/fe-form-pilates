@@ -5,12 +5,13 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
+import Select from "@/components/Select";
+import DatePicker from "@/components/DatePicker";
 import { adminStudentApi, catalogApi } from "@/lib/api";
 import { dateInputToEndOfDayIso, expiryFromNow, toDateInputValue } from "@/lib/date";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
-const selectStyle = { ...inputStyle, appearance: "none" as const };
 
 interface Props {
   studentId: string;
@@ -87,12 +88,10 @@ export default function CreateCreditLotModal({ studentId, open, onClose, onCreat
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Gói tập <span style={{ color: "var(--accent)" }}>*</span>
           </label>
-          <select
-            className={inputClass}
-            style={selectStyle}
+          <Select
             value={packageId}
-            onChange={(e) => {
-              const id = e.target.value;
+            placeholder="Chọn gói tập"
+            onChange={(id) => {
               setPackageId(id);
               const pkg = packages?.find((p) => p.id === id);
               if (pkg) {
@@ -103,12 +102,8 @@ export default function CreateCreditLotModal({ studentId, open, onClose, onCreat
                 setExpiryTouched(false);
               }
             }}
-          >
-            <option value="">Chọn gói tập</option>
-            {packages?.map((p) => (
-              <option key={p.id} value={p.id}>{p.name} ({p.sessions} buổi)</option>
-            ))}
-          </select>
+            options={(packages ?? []).map((p) => ({ value: p.id, label: `${p.name} (${p.sessions} buổi)` }))}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -125,11 +120,10 @@ export default function CreateCreditLotModal({ studentId, open, onClose, onCreat
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Hết hạn <span style={{ color: "var(--accent)" }}>*</span>
             </label>
-            <input
-              type="date" className={inputClass} style={inputStyle}
+            <DatePicker
               value={expiresAt ? toDateInputValue(expiresAt) : ""}
-              onChange={(e) => {
-                setExpiresAt(e.target.value ? dateInputToEndOfDayIso(e.target.value) : "");
+              onChange={(v) => {
+                setExpiresAt(v ? dateInputToEndOfDayIso(v) : "");
                 setExpiryTouched(true);
               }}
             />
@@ -140,10 +134,12 @@ export default function CreateCreditLotModal({ studentId, open, onClose, onCreat
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
             Chi nhánh áp dụng
           </label>
-          <select className={inputClass} style={selectStyle} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">Mọi chi nhánh</option>
-            {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select
+            value={branchId}
+            onChange={setBranchId}
+            placeholder="Mọi chi nhánh"
+            options={[{ value: "", label: "Mọi chi nhánh" }, ...(branches ?? []).map((b) => ({ value: b.id, label: b.name }))]}
+          />
           <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
             Để trống nếu học viên được dùng gói này ở bất kỳ chi nhánh nào.
           </p>

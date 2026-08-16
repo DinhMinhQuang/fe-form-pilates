@@ -35,22 +35,29 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
   const [error, setError] = useState<Error | null>(null);
 
   const now = Date.now();
-  const activeLots = student?.credit_lots.filter(
-    (l) => l.status === "active" && l.sessions_remaining > 0 && new Date(l.expires_at).getTime() > now,
-  ) ?? [];
-  const bookableSessions = sessions?.filter((s) =>
-    activeLots.some(
+  // Buổi đã diễn ra (ghi nhận walk-in) chỉ cần credit còn hạn TẠI thời điểm
+  // buổi đó diễn ra, không phải tại thời điểm admin đang thao tác — nếu không
+  // sẽ ẩn mất những buổi hợp lệ mà lot đã hết hạn kể từ đó.
+  const eligibleLotsFor = (s: ClassSession) =>
+    (student?.credit_lots ?? []).filter(
       (l) =>
+        l.status === "active" &&
+        l.sessions_remaining > 0 &&
+        new Date(l.expires_at).getTime() > Math.min(new Date(s.start_at).getTime(), now) &&
         l.class_type_ids.includes(s.class_type_id) &&
         (l.branch_id == null || l.branch_id === s.branch_id),
-    ),
-  );
+    );
+  const bookableSessions = sessions?.filter((s) => eligibleLotsFor(s).length > 0);
 
-  async function handleBook(sessionId: string) {
+  async function handleBook(sessionId: string, alreadyHappened: boolean) {
     setBooking(sessionId);
     setError(null);
     try {
-      await adminStudentApi.book(studentId, sessionId);
+      if (alreadyHappened) {
+        await adminStudentApi.bookAttended(studentId, sessionId);
+      } else {
+        await adminStudentApi.book(studentId, sessionId);
+      }
       onBooked();
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -85,6 +92,7 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
               ) : bookableSessions.map((s: ClassSession) => {
                 const full = s.booked_count >= s.capacity;
                 const alreadyBooked = bookedSessionIds.has(s.id);
+                const alreadyHappened = new Date(s.start_at).getTime() <= now;
                 return (
                   <tr key={s.id} style={{ borderBottom: "1px solid var(--cream-dark)" }}>
                     <td className="px-4 py-3">
@@ -101,8 +109,8 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
                       {alreadyBooked ? (
                         <span className="text-xs" style={{ color: "var(--warm-gray-light)" }}>Đã đặt</span>
                       ) : (
-                        <Btn size="sm" variant="primary" disabled={full || booking === s.id} onClick={() => handleBook(s.id)}>
-                          {booking === s.id ? "..." : "Đặt"}
+                        <Btn size="sm" variant="primary" disabled={full || booking === s.id} onClick={() => handleBook(s.id, alreadyHappened)}>
+                          {booking === s.id ? "..." : alreadyHappened ? "Ghi nhận đã tập" : "Đặt"}
                         </Btn>
                       )}
                     </td>

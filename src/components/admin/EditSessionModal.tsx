@@ -5,13 +5,13 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
-import { adminBookingApi, adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
-import type { Booking, ClassSession } from "@/types";
+import { adminBookingApi, adminSessionApi, adminStudentApi, adminTrainerApi, catalogApi } from "@/lib/api";
+import type { Booking, ClassSession, Student } from "@/types";
 import CancelBookingModal from "@/components/admin/CancelBookingModal";
+import Select from "@/components/Select";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
-const selectStyle = { ...inputStyle, appearance: "none" as const };
 const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
 const BOOKING_STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -20,6 +20,71 @@ const BOOKING_STATUS_MAP: Record<string, { label: string; bg: string; color: str
   cancelled_refunded: { label: "Đã huỷ",  bg: "#FBF0F0", color: "#B94B4B" },
   no_show:            { label: "Vắng",    bg: "#FEF9E7", color: "#7A5C00" },
 };
+
+function AddWalkInStudent({ sessionId, onAdded }: { sessionId: string; onAdded: () => void }) {
+  const [q, setQ] = useState("");
+  const [adding, setAdding] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: results } = useSWR(
+    q.trim().length >= 2 ? ["/admin/students/walk-in-search", q] : null,
+    () => adminStudentApi.list({ q, limit: 6 }),
+  );
+
+  async function handleAdd(student: Student) {
+    setAdding(student.id);
+    setError(null);
+    try {
+      await adminStudentApi.bookAttended(student.id, sessionId);
+      setQ("");
+      onAdded();
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setAdding(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
+        Ghi nhận học viên tập ngoài lịch (walk-in)
+      </span>
+      <div className="relative">
+        <input
+          type="text"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Tìm theo tên hoặc số điện thoại..."
+          className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors"
+          style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" }}
+        />
+        {results && results.length > 0 && (
+          <div
+            className="absolute z-10 mt-1 w-full rounded-lg border shadow-lg overflow-hidden"
+            style={{ background: "var(--white)", borderColor: "var(--sand)" }}
+          >
+            {results.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={adding === s.id}
+                onClick={() => handleAdd(s)}
+                className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-sm text-left hover:bg-[var(--cream)] transition-colors"
+                style={{ color: "var(--charcoal)" }}
+              >
+                <span>
+                  {s.full_name} <span style={{ color: "var(--warm-gray-light)" }}>{s.phone ?? ""}</span>
+                </span>
+                <span className="text-xs" style={{ color: "var(--accent)" }}>{adding === s.id ? "..." : "Ghi nhận đã tập"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <FormError error={error} />
+    </div>
+  );
+}
 
 function SessionRoster({ sessionId, onChanged }: { sessionId: string; onChanged: () => void }) {
   const { data: bookings, isLoading, error, mutate } = useSWR(
@@ -43,8 +108,14 @@ function SessionRoster({ sessionId, onChanged }: { sessionId: string; onChanged:
     }
   }
 
+  async function handleWalkInAdded() {
+    await mutate();
+    onChanged();
+  }
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
+      <AddWalkInStudent sessionId={sessionId} onAdded={handleWalkInAdded} />
       <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
         Danh sách học viên đã đặt
       </span>
@@ -213,24 +284,30 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Chi nhánh</label>
-            <select className={inputClass} style={selectStyle} value={branchId} onChange={(e) => handleBranchChange(e.target.value)}>
-              {branches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <Select
+              value={branchId}
+              onChange={handleBranchChange}
+              options={(branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Loại lớp</label>
-            <select className={inputClass} style={selectStyle} value={classTypeId} onChange={(e) => handleClassTypeChange(e.target.value)}>
-              {availableClassTypes?.map((ct) => <option key={ct.id} value={ct.id}>{ct.name} ({ct.default_capacity})</option>)}
-            </select>
+            <Select
+              value={classTypeId}
+              onChange={handleClassTypeChange}
+              options={(availableClassTypes ?? []).map((ct) => ({ value: ct.id, label: `${ct.name} (${ct.default_capacity})` }))}
+            />
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Huấn luyện viên</label>
-          <select className={inputClass} style={selectStyle} value={trainerId} onChange={(e) => setTrainerId(e.target.value)}>
-            <option value="">— Chưa gán —</option>
-            {trainers?.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-          </select>
+          <Select
+            value={trainerId}
+            onChange={setTrainerId}
+            placeholder="— Chưa gán —"
+            options={[{ value: "", label: "— Chưa gán —" }, ...(trainers ?? []).map((t) => ({ value: t.id, label: t.full_name }))]}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -246,20 +323,22 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Sức chứa</label>
-          <select className={inputClass} style={selectStyle} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))}>
-            <option value={1}>1 (Private)</option>
-            <option value={2}>2 (Duo)</option>
-            <option value={3}>3 (Trio)</option>
-            <option value={6}>6 (Nhóm)</option>
-          </select>
+          <Select
+            value={String(capacity)}
+            onChange={(v) => setCapacity(Number(v))}
+            options={[
+              { value: "1", label: "1 (Private)" },
+              { value: "2", label: "2 (Duo)" },
+              { value: "3", label: "3 (Trio)" },
+              { value: "6", label: "6 (Nhóm)" },
+            ]}
+          />
           <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
             Tự động theo loại lớp, có thể đổi nếu cần. Đã đặt: {session.booked_count} người
           </p>
         </div>
 
-        {session.booked_count > 0 && (
-          <SessionRoster sessionId={session.id} onChanged={() => onRosterChanged?.()} />
-        )}
+        <SessionRoster sessionId={session.id} onChanged={() => onRosterChanged?.()} />
 
         <FormError error={error} />
 
