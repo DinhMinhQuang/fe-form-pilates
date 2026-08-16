@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   title: string;
@@ -10,6 +11,10 @@ interface ModalProps {
 }
 
 export default function Modal({ title, open, onClose, children }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -17,9 +22,13 @@ export default function Modal({ title, open, onClose, children }: ModalProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // Render via portal — modals (e.g. CancelBookingModal) are often opened
+  // from inside another modal's <form> (e.g. EditSessionModal); without a
+  // portal their own <form> would nest inside that ancestor <form> in the
+  // DOM, which HTML disallows and breaks the inner submit button.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(28,28,28,0.4)", backdropFilter: "blur(2px)" }}
@@ -48,6 +57,7 @@ export default function Modal({ title, open, onClose, children }: ModalProps) {
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
