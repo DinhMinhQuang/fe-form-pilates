@@ -5,8 +5,8 @@ import useSWR from "swr";
 import Modal from "@/components/Modal";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
-import { adminBookingApi, adminSessionApi, adminTrainerApi, catalogApi } from "@/lib/api";
-import type { Booking, ClassSession } from "@/types";
+import { adminBookingApi, adminSessionApi, adminStudentApi, adminTrainerApi, catalogApi } from "@/lib/api";
+import type { Booking, ClassSession, Student } from "@/types";
 import CancelBookingModal from "@/components/admin/CancelBookingModal";
 import Select from "@/components/Select";
 
@@ -20,6 +20,71 @@ const BOOKING_STATUS_MAP: Record<string, { label: string; bg: string; color: str
   cancelled_refunded: { label: "Đã huỷ",  bg: "#FBF0F0", color: "#B94B4B" },
   no_show:            { label: "Vắng",    bg: "#FEF9E7", color: "#7A5C00" },
 };
+
+function AddWalkInStudent({ sessionId, onAdded }: { sessionId: string; onAdded: () => void }) {
+  const [q, setQ] = useState("");
+  const [adding, setAdding] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const { data: results } = useSWR(
+    q.trim().length >= 2 ? ["/admin/students/walk-in-search", q] : null,
+    () => adminStudentApi.list({ q, limit: 6 }),
+  );
+
+  async function handleAdd(student: Student) {
+    setAdding(student.id);
+    setError(null);
+    try {
+      await adminStudentApi.bookAttended(student.id, sessionId);
+      setQ("");
+      onAdded();
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setAdding(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
+        Ghi nhận học viên tập ngoài lịch (walk-in)
+      </span>
+      <div className="relative">
+        <input
+          type="text"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Tìm theo tên hoặc số điện thoại..."
+          className="w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors"
+          style={{ borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" }}
+        />
+        {results && results.length > 0 && (
+          <div
+            className="absolute z-10 mt-1 w-full rounded-lg border shadow-lg overflow-hidden"
+            style={{ background: "var(--white)", borderColor: "var(--sand)" }}
+          >
+            {results.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={adding === s.id}
+                onClick={() => handleAdd(s)}
+                className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-sm text-left hover:bg-[var(--cream)] transition-colors"
+                style={{ color: "var(--charcoal)" }}
+              >
+                <span>
+                  {s.full_name} <span style={{ color: "var(--warm-gray-light)" }}>{s.phone ?? ""}</span>
+                </span>
+                <span className="text-xs" style={{ color: "var(--accent)" }}>{adding === s.id ? "..." : "Ghi nhận đã tập"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <FormError error={error} />
+    </div>
+  );
+}
 
 function SessionRoster({ sessionId, onChanged }: { sessionId: string; onChanged: () => void }) {
   const { data: bookings, isLoading, error, mutate } = useSWR(
@@ -43,8 +108,14 @@ function SessionRoster({ sessionId, onChanged }: { sessionId: string; onChanged:
     }
   }
 
+  async function handleWalkInAdded() {
+    await mutate();
+    onChanged();
+  }
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
+      <AddWalkInStudent sessionId={sessionId} onAdded={handleWalkInAdded} />
       <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
         Danh sách học viên đã đặt
       </span>
@@ -267,9 +338,7 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
           </p>
         </div>
 
-        {session.booked_count > 0 && (
-          <SessionRoster sessionId={session.id} onChanged={() => onRosterChanged?.()} />
-        )}
+        <SessionRoster sessionId={session.id} onChanged={() => onRosterChanged?.()} />
 
         <FormError error={error} />
 
