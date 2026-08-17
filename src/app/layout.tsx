@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "FORM Pilates",
   description: "Hệ thống quản lý lịch học FORM Pilates",
-  icons: { icon: "/favicon-32x32.png", shortcut: "/favicon-32x32.png", apple: "/favicon-32x32.png" },
+  icons: { icon: "/favicon-32x32.png", shortcut: "/favicon-32x32.png", apple: "/icon-180.png" },
 };
 
 export default function RootLayout({
