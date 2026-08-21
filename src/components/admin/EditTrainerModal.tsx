@@ -9,6 +9,7 @@ import type { Trainer } from "@/types";
 
 const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
 const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
+const MIN_PASSWORD_LENGTH = 10;
 
 interface Props {
   trainer: Trainer | null;
@@ -20,6 +21,7 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -29,6 +31,7 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
       setFullName(trainer.full_name);
       setEmail(trainer.email ?? "");
       setPhone(trainer.phone ?? "");
+      setNewPassword("");
       setError(null);
     }
   }, [trainer]);
@@ -45,11 +48,21 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
       setError(new Error("Email không hợp lệ"));
       return;
     }
+    if (newPassword && newPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(new Error(`Mật khẩu mới phải có ít nhất ${MIN_PASSWORD_LENGTH} ký tự`));
+      return;
+    }
 
     setError(null);
     setLoading(true);
     try {
-      await adminTrainerApi.update(trainer.id, { full_name: fullName, email, phone });
+      await adminTrainerApi.update(trainer.id, {
+        full_name: fullName,
+        email,
+        phone,
+        ...(newPassword ? { password: newPassword } : {}),
+      });
+      setNewPassword("");
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -99,6 +112,17 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
             <input type="tel" className={inputClass} style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)}
               onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")} onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")} />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Đặt lại mật khẩu</label>
+          <input
+            type="password" className={inputClass} style={inputStyle} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")} onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
+          />
+          <p className="text-xs" style={{ color: "var(--warm-gray-light)" }}>
+            Để trống nếu không đổi. Nếu nhập, cần ít nhất {MIN_PASSWORD_LENGTH} ký tự.
+          </p>
         </div>
 
         <FormError error={error} />

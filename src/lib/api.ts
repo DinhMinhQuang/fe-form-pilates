@@ -10,6 +10,7 @@ import type {
   BookingStatus,
   Branch,
   CancelSessionBody,
+  ChangePasswordBody,
   ClassSession,
   ClassType,
   CoursePackage,
@@ -368,6 +369,12 @@ export const authApi = {
 
   staffLogin: (email: string, password: string) =>
     post<AuthSession>("/auth/staff/login", { email, password }, false),
+
+  requestPasswordReset: (email: string) =>
+    post<{ accepted: boolean; dev_token?: string }>("/auth/password-reset/request", { email }, false),
+
+  confirmPasswordReset: (token: string, new_password: string) =>
+    post<void>("/auth/password-reset/confirm", { token, new_password }, false),
 };
 
 // ─── Me ──────────────────────────────────────────────────────────────────────
@@ -459,6 +466,9 @@ export const trainerApi = {
 
   createSession: (body: CreateTrainerSessionBody) =>
     post<{ session_id: string }>("/trainer/sessions", body),
+
+  changePassword: (body: ChangePasswordBody) =>
+    put<void>("/trainer/me/password", body),
 };
 
 // ─── Admin — Sessions ─────────────────────────────────────────────────────────
