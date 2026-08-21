@@ -82,9 +82,14 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium tracking-wide uppercase" style={{ color: "var(--warm-gray)" }}>
-              Mật khẩu
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium tracking-wide uppercase" style={{ color: "var(--warm-gray)" }}>
+                Mật khẩu
+              </label>
+              <a href="/forgot-password" className="text-xs underline underline-offset-2" style={{ color: "var(--warm-gray)" }}>
+                Quên mật khẩu?
+              </a>
+            </div>
             <input
               type="password"
               placeholder="••••••••"

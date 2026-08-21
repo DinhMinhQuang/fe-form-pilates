@@ -207,6 +207,11 @@ export interface CreateTrainerBody {
   password: string;
 }
 
+export interface ChangePasswordBody {
+  current_password: string;
+  new_password: string;
+}
+
 export interface CreateStudentBody {
   full_name: string;
   email?: string;
