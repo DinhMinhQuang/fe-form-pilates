@@ -511,6 +511,10 @@ export const adminTrainerApi = {
 
 // ─── Admin — Students ─────────────────────────────────────────────────────────
 
+export const adminEmailOutboxApi = {
+  status: (id: string) => get<{ id: string; status: string }>(`/admin/email-outbox/${id}`),
+};
+
 export const adminStudentApi = {
   list: (params?: { q?: string; status?: string; cursor?: string; limit?: number }) =>
     getPage<Student>("/admin/students", params),
@@ -525,6 +529,9 @@ export const adminStudentApi = {
     patch<void>(`/admin/students/${studentId}`, body),
 
   disable: (studentId: string) => del<void>(`/admin/students/${studentId}`),
+
+  sendMagicLink: (studentId: string) =>
+    post<{ id: string; status: string }>(`/admin/students/${studentId}/magic-link`),
 
   book: (studentId: string, sessionId: string) =>
     post<{ booking_id: string }>(

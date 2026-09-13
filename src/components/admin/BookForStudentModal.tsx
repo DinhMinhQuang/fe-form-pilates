@@ -35,15 +35,16 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
   const [error, setError] = useState<Error | null>(null);
 
   const now = Date.now();
-  // Buổi đã diễn ra (ghi nhận walk-in) chỉ cần credit còn hạn TẠI thời điểm
-  // buổi đó diễn ra, không phải tại thời điểm admin đang thao tác — nếu không
-  // sẽ ẩn mất những buổi hợp lệ mà lot đã hết hạn kể từ đó.
+  // Credit phải còn hạn TẠI thời điểm buổi diễn ra (khớp điều kiện backend
+  // cl.expires_at >= session.start_at), không phải tại thời điểm admin thao
+  // tác — dùng now() ở đây làm buổi tương lai bị coi là hợp lệ dù lot hết
+  // hạn trước ngày buổi diễn ra.
   const eligibleLotsFor = (s: ClassSession) =>
     (student?.credit_lots ?? []).filter(
       (l) =>
         l.status === "active" &&
         l.sessions_remaining > 0 &&
-        new Date(l.expires_at).getTime() > Math.min(new Date(s.start_at).getTime(), now) &&
+        new Date(l.expires_at).getTime() > new Date(s.start_at).getTime() &&
         l.class_type_ids.includes(s.class_type_id) &&
         (l.branch_id == null || l.branch_id === s.branch_id),
     );
