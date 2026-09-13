@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { adminStudentApi, adminBookingApi } from "@/lib/api";
+import { adminStudentApi, adminBookingApi, adminEmailOutboxApi } from "@/lib/api";
 import type { AdminCreditLot, Booking, Student } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
+import FormError from "@/components/FormError";
 import EmptyRow from "@/components/EmptyRow";
 import Btn from "@/components/Btn";
 import BookForStudentModal from "@/components/admin/BookForStudentModal";
@@ -36,6 +37,9 @@ export default function StudentDrawer({ student, onClose }: Props) {
   const [adjustingLot, setAdjustingLot] = useState<AdminCreditLot | null>(null);
   const [disabling, setDisabling] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+  const [magicLinkStatus, setMagicLinkStatus] = useState<"idle" | "pending" | "sent" | "failed">("idle");
+  const [magicLinkError, setMagicLinkError] = useState<Error | null>(null);
+  const magicLinkPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: detail, error: detailError, mutate: mutateDetail } = useSWR(
     student ? `/admin/students/${student.id}` : null,
@@ -46,6 +50,16 @@ export default function StudentDrawer({ student, onClose }: Props) {
     student ? `/admin/bookings?student_id=${student.id}` : null,
     () => adminBookingApi.list({ student_id: student!.id }),
   );
+
+  useEffect(() => {
+    if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+    setMagicLinkStatus("idle");
+    setMagicLinkError(null);
+  }, [student?.id]);
+
+  useEffect(() => () => {
+    if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+  }, []);
 
   function refetch() {
     mutateDetail();
@@ -73,6 +87,36 @@ export default function StudentDrawer({ student, onClose }: Props) {
       refetch();
     } finally {
       setDisabling(false);
+    }
+  }
+
+  async function handleSendMagicLink() {
+    if (!student) return;
+    setMagicLinkStatus("pending");
+    setMagicLinkError(null);
+    try {
+      const { id: outboxId } = await adminStudentApi.sendMagicLink(student.id);
+      // Email gửi async qua worker (poll mỗi 15s) — poll trạng thái outbox tối đa ~45s
+      // rồi dừng, ngay cả khi vẫn "pending" (không chặn admin thao tác tiếp).
+      let attempts = 0;
+      magicLinkPollRef.current = setInterval(async () => {
+        attempts += 1;
+        try {
+          const { status } = await adminEmailOutboxApi.status(outboxId);
+          if (status === "sent" || status === "failed") {
+            setMagicLinkStatus(status);
+            if (status === "failed") setMagicLinkError(new Error("Gửi email thất bại, vui lòng thử lại."));
+            if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+          } else if (attempts >= 15) {
+            if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+          }
+        } catch {
+          if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+        }
+      }, 3000);
+    } catch (err) {
+      setMagicLinkStatus("failed");
+      setMagicLinkError(err instanceof Error ? err : new Error(String(err)));
     }
   }
 
@@ -112,6 +156,22 @@ export default function StudentDrawer({ student, onClose }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Btn
+              variant="ghost"
+              size="sm"
+              style={{ color: "var(--charcoal)" }}
+              disabled={!student.email || magicLinkStatus === "pending"}
+              title={!student.email ? "Học viên chưa có email" : undefined}
+              onClick={handleSendMagicLink}
+            >
+              {magicLinkStatus === "pending"
+                ? "Đang gửi..."
+                : magicLinkStatus === "sent"
+                  ? "Đã gửi"
+                  : magicLinkStatus === "failed"
+                    ? "Gửi thất bại — thử lại"
+                    : "Gửi magic link"}
+            </Btn>
             {detail && (
               <Btn variant={detail.status === "active" ? "danger" : "ghost"} size="sm" disabled={disabling} onClick={handleToggleStatus}>
                 {disabling ? "..." : detail.status === "active" ? "Vô hiệu hoá" : "Kích hoạt lại"}
@@ -124,6 +184,7 @@ export default function StudentDrawer({ student, onClose }: Props) {
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
           {detailError && <ErrorBox error={detailError} onRetry={() => mutateDetail()} />}
+          {magicLinkError && <FormError error={magicLinkError} />}
 
           {/* Credits + book */}
           <div className="flex items-center justify-between">
