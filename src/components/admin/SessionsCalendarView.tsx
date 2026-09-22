@@ -39,6 +39,8 @@ interface Props {
 export default function SessionsCalendarView({ onSelect }: Props) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const weekEnd = addDays(weekStart, 7);
+  const today = new Date();
+  const [selectedDay, setSelectedDay] = useState(today);
 
   const { data: sessions, isLoading } = useSWR(
     ["/admin/sessions/calendar", weekStart.toISOString()],
@@ -46,7 +48,9 @@ export default function SessionsCalendarView({ onSelect }: Props) {
   );
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const today = new Date();
+  const selectedDaySessions = (sessions ?? [])
+    .filter((s) => isSameDay(new Date(s.start_at), selectedDay))
+    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
 
   return (
     <div>
@@ -56,7 +60,7 @@ export default function SessionsCalendarView({ onSelect }: Props) {
             type="button"
             className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
             style={{ borderColor: "var(--sand)", color: "var(--warm-gray)" }}
-            onClick={() => setWeekStart((w) => addDays(w, -7))}
+            onClick={() => setWeekStart((w) => { const n = addDays(w, -7); setSelectedDay(n); return n; })}
           >
             ←
           </button>
@@ -64,7 +68,7 @@ export default function SessionsCalendarView({ onSelect }: Props) {
             type="button"
             className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
             style={{ borderColor: "var(--sand)", color: "var(--warm-gray)" }}
-            onClick={() => setWeekStart(startOfWeek(new Date()))}
+            onClick={() => { setWeekStart(startOfWeek(new Date())); setSelectedDay(new Date()); }}
           >
             Hôm nay
           </button>
@@ -72,7 +76,7 @@ export default function SessionsCalendarView({ onSelect }: Props) {
             type="button"
             className="px-3 py-1.5 rounded-lg text-sm border transition-colors"
             style={{ borderColor: "var(--sand)", color: "var(--warm-gray)" }}
-            onClick={() => setWeekStart((w) => addDays(w, 7))}
+            onClick={() => setWeekStart((w) => { const n = addDays(w, 7); setSelectedDay(n); return n; })}
           >
             →
           </button>
@@ -87,7 +91,85 @@ export default function SessionsCalendarView({ onSelect }: Props) {
       {isLoading ? (
         <div className="px-5 py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
       ) : (
-        <div className="grid grid-cols-7 gap-2">
+        <>
+        {/* iOS Calendar-style day strip + agenda list, phones only */}
+        <div className="sm:hidden">
+          <div className="flex justify-between mb-4">
+            {days.map((day, i) => {
+              const isToday = isSameDay(day, today);
+              const isSelected = isSameDay(day, selectedDay);
+              const hasSessions = (sessions ?? []).some((s) => isSameDay(new Date(s.start_at), day));
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setSelectedDay(day)}
+                  className="flex flex-col items-center gap-1 w-9"
+                >
+                  <span className="text-[10px] uppercase" style={{ color: "var(--warm-gray-light)" }}>
+                    {WEEKDAY_LABELS[i].replace("Thứ ", "T").replace("Chủ nhật", "CN")}
+                  </span>
+                  <span
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
+                    style={
+                      isSelected
+                        ? { background: "var(--charcoal)", color: "var(--white)" }
+                        : isToday
+                        ? { color: "var(--accent)" }
+                        : { color: "var(--charcoal)" }
+                    }
+                  >
+                    {day.getDate()}
+                  </span>
+                  <span
+                    className="w-1 h-1 rounded-full"
+                    style={{ background: hasSessions ? "var(--accent)" : "transparent" }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {selectedDaySessions.length === 0 ? (
+              <div className="text-sm text-center py-10" style={{ color: "var(--warm-gray-light)" }}>Không có buổi tập</div>
+            ) : (
+              selectedDaySessions.map((s) => {
+                const status = STATUS_COLOR[s.status] ?? { bg: "var(--cream-dark)", color: "var(--charcoal)" };
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onSelect(s)}
+                    className="text-left rounded-lg px-3 py-2.5 border flex items-center gap-3"
+                    style={{ borderColor: "var(--sand)", background: "var(--white)" }}
+                  >
+                    <div
+                      className="w-1 self-stretch rounded-full flex-shrink-0"
+                      style={{ background: status.color }}
+                    />
+                    <div className="text-sm font-medium w-14 flex-shrink-0" style={{ color: "var(--charcoal)" }}>
+                      {new Date(s.start_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm truncate" style={{ color: "var(--charcoal)" }}>
+                        {s.class_type_name}
+                      </div>
+                      <div className="text-xs truncate font-bold" style={{ color: "var(--charcoal)" }}>
+                        {s.branch_name}
+                      </div>
+                      <div className="text-xs truncate" style={{ color: "var(--warm-gray-light)" }}>
+                        {s.trainer_name ?? "—"} · {s.booked_count}/{s.capacity}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="hidden sm:grid grid-cols-7 gap-2">
           {days.map((day, i) => {
             const daySessions = (sessions ?? [])
               .filter((s) => isSameDay(new Date(s.start_at), day))
@@ -128,7 +210,10 @@ export default function SessionsCalendarView({ onSelect }: Props) {
                             {new Date(s.start_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                           </div>
                           <div className="text-xs mt-0.5 truncate" style={{ color: "var(--charcoal)" }}>
-                            {s.class_type_name} · <span className="font-bold">{s.branch_name}</span>
+                            {s.class_type_name}
+                          </div>
+                          <div className="text-xs truncate font-bold" style={{ color: "var(--charcoal)" }}>
+                            {s.branch_name}
                           </div>
                           <div className="text-xs truncate" style={{ color: "var(--warm-gray-light)" }}>
                             {s.trainer_name ?? "—"} · {s.booked_count}/{s.capacity}
@@ -142,6 +227,7 @@ export default function SessionsCalendarView({ onSelect }: Props) {
             );
           })}
         </div>
+        </>
       )}
     </div>
   );

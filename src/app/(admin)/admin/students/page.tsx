@@ -47,7 +47,7 @@ export default function AdminStudentsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Học viên</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Danh sách học viên đang theo học</p>
@@ -72,7 +72,35 @@ export default function AdminStudentsPage() {
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+      {/* mobile: stacked cards */}
+      <div className="sm:hidden flex flex-col gap-2">
+        {isLoading ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
+        ) : !students?.length ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Chưa có học viên nào</div>
+        ) : students.map((s: Student) => (
+          <div
+            key={s.id}
+            className="rounded-xl border p-4 flex items-center gap-3"
+            style={{ background: "var(--white)", borderColor: "var(--sand)" }}
+            onClick={() => setViewing(s)}
+          >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0" style={{ background: "var(--sand)", color: "var(--charcoal)" }}>
+              {s.full_name[0]?.toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate" style={{ color: "var(--charcoal)" }}>{s.full_name}</div>
+              <div className="text-xs mt-0.5 truncate" style={{ color: "var(--warm-gray)" }}>{s.phone ?? s.email ?? "—"}</div>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={s.status === "active" ? { background: "#EAF5EA", color: "#2E6B2E" } : { background: "#FBF0F0", color: "#B94B4B" }}>
+              {s.status === "active" ? "Hoạt động" : "Vô hiệu"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* desktop: table */}
+      <div className="hidden sm:block rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
@@ -111,7 +139,7 @@ export default function AdminStudentsPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                  <Btn variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => setEditing(s)}>Sửa</Btn>
+                  <Btn variant="ghost" size="sm" className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" onClick={() => setEditing(s)}>Sửa</Btn>
                 </td>
               </tr>
             ))}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import { adminSessionApi } from "@/lib/api";
 import type { ClassSession } from "@/types";
 import ErrorBox from "@/components/ErrorBox";
@@ -43,11 +43,12 @@ export default function AdminSessionsPage() {
   function refresh() {
     setCursors([]);
     mutate();
+    globalMutate((key) => Array.isArray(key) && key[0] === "/admin/sessions/calendar");
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Lịch học</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Quản lý các buổi tập của studio</p>
@@ -91,7 +92,42 @@ export default function AdminSessionsPage() {
         <SessionsCalendarView onSelect={(s) => setEditing(s)} />
       ) : (
       <>
-      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+      {/* mobile: stacked cards */}
+      <div className="sm:hidden flex flex-col gap-2">
+        {isLoading ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
+        ) : !sessions?.length ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Chưa có buổi tập nào</div>
+        ) : sessions.map((s: ClassSession) => {
+          const status = STATUS_MAP[s.status] ?? { label: s.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
+          return (
+            <div
+              key={s.id}
+              className="rounded-xl border p-4"
+              style={{ background: "var(--white)", borderColor: "var(--sand)" }}
+              onClick={() => setEditing(s)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-medium truncate" style={{ color: "var(--charcoal)" }}>{s.class_type_name}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray-light)" }}>{s.branch_name}</div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0" style={{ background: status.bg, color: status.color }}>
+                  {status.label}
+                </span>
+              </div>
+              <div className="text-xs mt-2" style={{ color: "var(--warm-gray)" }}>
+                {new Date(s.start_at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <div className="text-xs mt-1" style={{ color: "var(--warm-gray)" }}>
+                {s.trainer_name ?? "—"} · {s.booked_count}/{s.capacity}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden sm:block rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>

@@ -121,8 +121,8 @@ function SessionRoster({ sessionId, onChanged }: { sessionId: string; onChanged:
       </span>
       {rosterError && <FormError error={rosterError} />}
       {error && <FormError error={error} />}
-      <div className="rounded-lg border overflow-hidden" style={{ borderColor: "var(--sand)" }}>
-        <table className="w-full text-sm">
+      <div className="rounded-lg border overflow-x-auto" style={{ borderColor: "var(--sand)" }}>
+        <table className="w-full text-sm min-w-[420px]">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
               <th className="text-left px-3 py-2 text-xs font-medium uppercase" style={{ color: "var(--warm-gray)" }}>Học viên</th>
@@ -281,7 +281,7 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
   return (
     <Modal title="Sửa buổi tập" open={open} onClose={onClose}>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Chi nhánh</label>
             <Select
@@ -310,7 +310,7 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Bắt đầu</label>
             <input type="datetime-local" className={inputClass} style={inputStyle} value={startAt} onChange={(e) => setStartAt(e.target.value)} />
@@ -342,14 +342,16 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
 
         <FormError error={error} />
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
           <Btn variant="danger" type="button" disabled={session.status !== "scheduled"} onClick={() => setShowCancelSession(true)}>
             Huỷ buổi tập
           </Btn>
-          <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Đóng</Btn>
-          <Btn variant="primary" className="flex-1" type="submit" disabled={loading || session.status !== "scheduled"}>
-            {loading ? "Đang lưu..." : "Lưu thay đổi"}
-          </Btn>
+          <div className="flex gap-2 flex-1">
+            <Btn variant="ghost" className="flex-1" type="button" onClick={onClose}>Đóng</Btn>
+            <Btn variant="primary" className="flex-1" type="submit" disabled={loading || session.status !== "scheduled"}>
+              {loading ? "Đang lưu..." : "Lưu thay đổi"}
+            </Btn>
+          </div>
         </div>
       </form>
 
