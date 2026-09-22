@@ -39,7 +39,7 @@ export default function AdminHaravanPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Haravan</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Đồng bộ sản phẩm Haravan với gói credits</p>
@@ -48,7 +48,31 @@ export default function AdminHaravanPage() {
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+      {/* mobile: stacked cards */}
+      <div className="sm:hidden flex flex-col gap-2">
+        {isLoading ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
+        ) : !mappings?.length ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Chưa có mapping nào</div>
+        ) : mappings.map((m: HaravanProductMapping) => (
+          <div key={m.id} className="rounded-xl border p-4" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-medium" style={{ color: "var(--charcoal)" }}>{m.package_name}</div>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={m.active ? { background: "#EAF5EA", color: "#2E6B2E" } : { background: "#FBF0F0", color: "#B94B4B" }}>
+                {m.active ? "Hoạt động" : "Tắt"}
+              </span>
+            </div>
+            <div className="text-xs mt-1 font-mono" style={{ color: "var(--warm-gray)" }}>SKU: {m.haravan_sku ?? "—"}</div>
+            <div className="text-xs mt-0.5 font-mono" style={{ color: "var(--warm-gray)" }}>Variant: {m.haravan_variant_id}</div>
+            <div className="text-xs mt-1" style={{ color: "var(--warm-gray)" }}>{m.branch_name ?? "Tất cả"}</div>
+            <div className="mt-2">
+              <Btn variant="ghost" size="sm" onClick={() => toggleActive(m)}>{m.active ? "Tắt" : "Bật"}</Btn>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden sm:block rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
@@ -77,7 +101,7 @@ export default function AdminHaravanPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <Btn variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => toggleActive(m)}>
+                  <Btn variant="ghost" size="sm" className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" onClick={() => toggleActive(m)}>
                     {m.active ? "Tắt" : "Bật"}
                   </Btn>
                 </td>

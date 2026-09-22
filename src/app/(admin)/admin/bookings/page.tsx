@@ -91,7 +91,7 @@ export default function AdminBookingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Đặt lịch</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Tất cả booking của học viên</p>
@@ -142,7 +142,46 @@ export default function AdminBookingsPage() {
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => refresh()} /></div>}
       {cancelError && <div className="mb-4"><FormError error={cancelError} /></div>}
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+      {/* mobile: stacked cards */}
+      <div className="sm:hidden flex flex-col gap-2">
+        {isLoading ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
+        ) : !bookings?.length ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Chưa có booking nào</div>
+        ) : bookings.map((b: Booking) => {
+          const s = STATUS_MAP[b.status] ?? { label: b.status, bg: "var(--cream-dark)", color: "var(--charcoal)" };
+          return (
+            <div key={b.id} className="rounded-xl border p-4" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-medium truncate" style={{ color: "var(--charcoal)" }}>{b.student_name}</div>
+                  {b.student_phone && <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray-light)" }}>{b.student_phone}</div>}
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={{ background: s.bg, color: s.color }}>
+                  {s.label}
+                </span>
+              </div>
+              <div className="text-xs mt-2" style={{ color: "var(--warm-gray)" }}>
+                {b.class_type_name}{b.trainer_name && ` · ${b.trainer_name}`}
+              </div>
+              <div className="text-xs mt-1" style={{ color: "var(--warm-gray)" }}>
+                {new Date(b.session_start_at).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </div>
+              {b.cancellation_reason && (
+                <div className="text-xs mt-1" style={{ color: "var(--warm-gray-light)" }}>Lý do: {b.cancellation_reason}</div>
+              )}
+              {b.status === "booked" && (
+                <div className="flex gap-2 mt-3">
+                  <Btn variant="ghost" size="sm" onClick={() => setRescheduling(b)}>Đổi lịch</Btn>
+                  <Btn variant="danger" size="sm" onClick={() => setCancelTarget(b)}>Huỷ</Btn>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden sm:block rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
@@ -188,7 +227,7 @@ export default function AdminBookingsPage() {
                   </td>
                   <td className="px-5 py-3.5 text-right whitespace-nowrap">
                     {b.status === "booked" && (
-                      <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100">
+                      <div className="flex gap-2 justify-end [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
                         <Btn variant="ghost" size="sm" onClick={() => setRescheduling(b)}>
                           Đổi lịch
                         </Btn>

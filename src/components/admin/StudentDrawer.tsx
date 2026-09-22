@@ -133,8 +133,8 @@ export default function StudentDrawer({ student, onClose }: Props) {
 
       {/* Drawer */}
       <aside
-        className="fixed right-0 top-0 bottom-0 z-40 flex flex-col overflow-hidden"
-        style={{ width: 480, background: "var(--white)", borderLeft: "1px solid var(--sand)" }}
+        className="fixed right-0 top-0 bottom-0 z-40 flex flex-col overflow-hidden w-full"
+        style={{ maxWidth: 480, background: "var(--white)", borderLeft: "1px solid var(--sand)" }}
       >
         {/* Header */}
         <div
@@ -258,8 +258,8 @@ export default function StudentDrawer({ student, onClose }: Props) {
               Lịch sử đặt chỗ
             </h3>
             {bookingsError && <ErrorBox error={bookingsError} onRetry={() => mutateBookings()} />}
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--sand)" }}>
-              <table className="w-full text-sm">
+            <div className="rounded-xl border overflow-x-auto" style={{ borderColor: "var(--sand)" }}>
+              <table className="w-full text-sm min-w-[420px]">
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
                     <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Buổi tập</th>
@@ -292,7 +292,7 @@ export default function StudentDrawer({ student, onClose }: Props) {
                             <button
                               type="button"
                               onClick={() => setCancelTarget(b)}
-                              className="text-xs underline opacity-0 group-hover:opacity-100"
+                              className="text-xs underline opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                               style={{ color: "#B94B4B" }}
                             >
                               Huỷ

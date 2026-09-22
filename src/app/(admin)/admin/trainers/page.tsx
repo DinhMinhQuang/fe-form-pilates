@@ -17,7 +17,7 @@ export default function AdminTrainersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--charcoal)" }}>Huấn luyện viên</h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--warm-gray)" }}>Đội ngũ huấn luyện viên của studio</p>
@@ -30,7 +30,34 @@ export default function AdminTrainersPage() {
 
       {error && <div className="mb-4"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
+      {/* mobile: stacked cards */}
+      <div className="sm:hidden flex flex-col gap-2">
+        {isLoading ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Đang tải...</div>
+        ) : !trainers?.length ? (
+          <div className="py-10 text-sm text-center" style={{ color: "var(--warm-gray-light)" }}>Chưa có huấn luyện viên nào</div>
+        ) : trainers.map((t: Trainer) => (
+          <div
+            key={t.id}
+            className="rounded-xl border p-4 flex items-center gap-3"
+            style={{ background: "var(--white)", borderColor: "var(--sand)" }}
+            onClick={() => setEditing(t)}
+          >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0" style={{ background: "var(--accent)", color: "var(--white)" }}>
+              {t.full_name[0]?.toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate" style={{ color: "var(--charcoal)" }}>{t.full_name}</div>
+              <div className="text-xs mt-0.5 truncate" style={{ color: "var(--warm-gray)" }}>{t.phone ?? t.email ?? "—"}</div>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" style={t.status === "active" ? { background: "#EAF5EA", color: "#2E6B2E" } : { background: "#FBF0F0", color: "#B94B4B" }}>
+              {t.status === "active" ? "Hoạt động" : "Vô hiệu"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden sm:block rounded-xl border overflow-hidden" style={{ background: "var(--white)", borderColor: "var(--sand)" }}>
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--sand)", background: "var(--cream)" }}>
@@ -64,7 +91,7 @@ export default function AdminTrainersPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <Btn variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100" onClick={() => setEditing(t)}>Sửa</Btn>
+                  <Btn variant="ghost" size="sm" className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100" onClick={() => setEditing(t)}>Sửa</Btn>
                 </td>
               </tr>
             ))}
