@@ -128,7 +128,7 @@ export default function SessionsCalendarView({ onSelect }: Props) {
                             {new Date(s.start_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                           </div>
                           <div className="text-xs mt-0.5 truncate" style={{ color: "var(--charcoal)" }}>
-                            {s.class_type_name}
+                            {s.class_type_name} · <span className="font-bold">{s.branch_name}</span>
                           </div>
                           <div className="text-xs truncate" style={{ color: "var(--warm-gray-light)" }}>
                             {s.trainer_name ?? "—"} · {s.booked_count}/{s.capacity}
