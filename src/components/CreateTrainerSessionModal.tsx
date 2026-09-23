@@ -125,7 +125,7 @@ export default function CreateTrainerSessionModal({ open, onClose, onCreated }: 
   }
 
   return (
-    <Modal title="Tạo lớp Private / Duo" open={open} onClose={handleClose}>
+    <Modal title="Tạo lớp Private / Duo" open={open} onClose={handleClose} fullScreenMobile>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
