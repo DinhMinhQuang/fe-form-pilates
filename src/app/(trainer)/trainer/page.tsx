@@ -64,7 +64,7 @@ function AttendanceRow({ booking, onMarked }: { booking: Booking; onMarked: () =
           type="button"
           disabled={!!loading}
           onClick={() => mark("booked")}
-          className="text-xs underline"
+          className="text-xs underline py-1 px-1 -m-1"
           style={{ color: "var(--warm-gray)" }}
         >
           {loading === "booked" ? "..." : "Bỏ điểm danh"}
@@ -110,7 +110,8 @@ function SessionStudents({ sessionId, onClose }: { sessionId: string; onClose: (
 
       {error && <div className="px-5 pb-3"><ErrorBox error={error} onRetry={() => mutate()} /></div>}
 
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[420px]">
         <thead>
           <tr style={{ borderTop: "1px solid var(--sand)", borderBottom: "1px solid var(--sand)", background: "var(--white)" }}>
             <th className="text-left px-5 py-2 text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Học viên</th>
@@ -134,6 +135,7 @@ function SessionStudents({ sessionId, onClose }: { sessionId: string; onClose: (
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -181,8 +183,8 @@ export default function TrainerPage() {
       </div>
 
       {/* Branch filter + create session */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="w-64">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="w-full sm:w-64">
           <Select
             value={branchId}
             onChange={setBranchId}
