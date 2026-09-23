@@ -122,7 +122,7 @@ export default function SidebarLayout({ nav, matchStart, userName, onLogout, chi
       </aside>
 
       {/* Main — ml-16 default, ml-56 on xl */}
-      <div className="flex-1 ml-16 xl:ml-56 flex flex-col min-h-screen transition-all duration-200">
+      <div className="flex-1 min-w-0 ml-16 xl:ml-56 flex flex-col min-h-screen transition-all duration-200">
         <header
           className="h-14 flex items-center px-5 xl:px-8 border-b sticky top-0 z-10"
           style={{ background: "var(--white)", borderColor: "var(--sand)" }}

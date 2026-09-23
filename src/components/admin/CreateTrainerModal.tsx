@@ -86,7 +86,7 @@ export default function CreateTrainerModal({ open, onClose, onCreated }: Props) 
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Email <span style={{ color: "var(--accent)" }}>*</span>

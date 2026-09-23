@@ -290,7 +290,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
   return (
     <Modal title="Thêm buổi tập" open={open} onClose={handleClose}>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Chi nhánh <span style={{ color: "var(--accent)" }}>*</span>
@@ -341,7 +341,7 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
               Bắt đầu <span style={{ color: "var(--accent)" }}>*</span>

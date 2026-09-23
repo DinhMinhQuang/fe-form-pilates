@@ -253,8 +253,20 @@ export default function SchedulePage() {
                     opacity: passed ? 0.65 : 1,
                   }}
                 >
-                  {/* Status badge — top right */}
-                  <div className="absolute top-4 right-4">
+                  {/* Class name + status badge */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div
+                    className="font-bold uppercase min-w-0"
+                    style={{
+                      color: passed ? "var(--warm-gray)" : "var(--charcoal)",
+                      fontSize: 13,
+                      letterSpacing: "0.08em",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {s.class_type_name}
+                  </div>
+                  <div className="flex-shrink-0">
                     {passed ? (
                       <span
                         className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5 border"
@@ -292,18 +304,6 @@ export default function SchedulePage() {
                       </span>
                     )}
                   </div>
-
-                  {/* Class name */}
-                  <div
-                    className="font-bold uppercase pr-20 mb-2"
-                    style={{
-                      color: passed ? "var(--warm-gray)" : "var(--charcoal)",
-                      fontSize: 13,
-                      letterSpacing: "0.08em",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {s.class_type_name}
                   </div>
 
                   {/* Trainer */}

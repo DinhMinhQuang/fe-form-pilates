@@ -104,7 +104,7 @@ function BookingCard({ booking: b, onCancel, cancelling }: {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm mb-1" style={{ color: "var(--charcoal)" }}>{b.class_type_name}</div>
+        <div className="font-semibold text-sm mb-1 truncate" style={{ color: "var(--charcoal)" }}>{b.class_type_name}</div>
         <div className="text-xs" style={{ color: "var(--warm-gray)" }}>
           {start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
           {b.trainer_name && <> · {b.trainer_name}</>}
@@ -124,7 +124,7 @@ function BookingCard({ booking: b, onCancel, cancelling }: {
               Trong 6h, không thể huỷ
             </span>
           ) : (
-            <Btn variant="danger" size="sm" disabled={cancelling === b.id} onClick={() => onCancel(b.id)}>
+            <Btn variant="danger" size="sm" className="!py-2" disabled={cancelling === b.id} onClick={() => onCancel(b.id)}>
               {cancelling === b.id ? "..." : "Huỷ"}
             </Btn>
           )

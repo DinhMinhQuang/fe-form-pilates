@@ -101,7 +101,7 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
             onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")} onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Email</label>
             <input type="email" className={inputClass} style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)}
