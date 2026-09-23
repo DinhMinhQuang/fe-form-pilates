@@ -8,9 +8,11 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  /** Fill the whole screen on mobile — for long forms. */
+  fullScreenMobile?: boolean;
 }
 
-export default function Modal({ title, open, onClose, children }: ModalProps) {
+export default function Modal({ title, open, onClose, children, fullScreenMobile }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -30,16 +32,16 @@ export default function Modal({ title, open, onClose, children }: ModalProps) {
   // DOM, which HTML disallows and breaks the inner submit button.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 z-50 flex items-center justify-center ${fullScreenMobile ? "sm:p-4" : "p-4"}`}
       style={{ background: "rgba(28,28,28,0.4)", backdropFilter: "blur(2px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-md rounded-2xl shadow-xl"
+        className={`w-full flex flex-col shadow-xl ${fullScreenMobile ? "h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl" : "max-h-[90vh] max-w-md rounded-2xl"}`}
         style={{ background: "var(--white)" }}
       >
         <div
-          className="flex items-center justify-between px-6 py-4 border-b"
+          className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0"
           style={{ borderColor: "var(--sand)" }}
         >
           <h2 className="text-base font-semibold" style={{ color: "var(--charcoal)" }}>
@@ -55,7 +57,7 @@ export default function Modal({ title, open, onClose, children }: ModalProps) {
             ✕
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 flex-1 overflow-y-auto">{children}</div>
       </div>
     </div>,
     document.body,

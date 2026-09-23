@@ -57,3 +57,26 @@ body {
 .page-content {
   animation: fadeUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* iOS Safari: native date/time inputs ignore width:100% and overflow their container */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+  min-height: 2.75rem;
+}
+
+input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* iOS Safari zooms into any focused field with font-size < 16px */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
