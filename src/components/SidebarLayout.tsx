@@ -35,21 +35,21 @@ export default function SidebarLayout({ nav, matchStart, userName, onLogout, chi
       >
         {/* Logo */}
         <div
-          className="flex items-center justify-center xl:justify-start border-b flex-shrink-0 overflow-hidden"
+          className="flex items-center justify-center border-b flex-shrink-0 overflow-hidden"
           style={{ borderColor: "var(--charcoal-soft)", height: 64 }}
         >
           {/* Icon only on small, full logo on xl */}
-          <img
+          {/* <img
             src="/logo-icon.svg"
             alt="FORM"
             className="block xl:hidden"
             style={{ width: 26, height: 26, filter: "brightness(0) invert(1)", opacity: 0.85 }}
-          />
+          /> */}
           <img
             src="/logo-horizontal.svg"
             alt="FORM Pilates"
-            className="hidden xl:block"
-            style={{ width: 170, height: "auto", filter: "brightness(0) invert(1)", opacity: 0.9, marginLeft: 20 }}
+            className=""
+            style={{ width: 170, height: "auto", filter: "brightness(0) invert(1)", opacity: 0.9 }}
           />
         </div>
 
