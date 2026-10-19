@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <div>
           <p className="text-sm leading-relaxed italic" style={{ color: "var(--warm-gray-light)" }}>
-            "Movement is medicine. Every session, every student, every moment — managed with intention."
+            &quot;Movement is medicine. Every session, every student, every moment — managed with intention.&quot;
           </p>
         </div>
       </div>

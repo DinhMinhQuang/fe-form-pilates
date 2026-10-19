@@ -29,6 +29,7 @@ export default function AdjustCreditModal({ studentId, lot, onClose, onSaved }: 
 
   useEffect(() => {
     if (lot) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset the mounted form when a different credit lot is selected.
       setDelta(0);
       setExpiresAt(toDateInputValue(lot.expires_at));
       setReason("");

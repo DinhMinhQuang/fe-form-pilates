@@ -12,6 +12,7 @@ export function useAuth(requiredRole?: Role | Role[]) {
 
   useEffect(() => {
     const current = getUser();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Read the persisted session after hydration so server and client markup match.
     setUser(current);
     setReady(true);
 

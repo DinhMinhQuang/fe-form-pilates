@@ -53,6 +53,7 @@ export default function StudentDrawer({ student, onClose }: Props) {
 
   useEffect(() => {
     if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear delivery status when the drawer switches students.
     setMagicLinkStatus("idle");
     setMagicLinkError(null);
   }, [student?.id]);

@@ -1,35 +1,58 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { authApi, meApi } from "@/lib/api";
-import { setSession, setToken } from "@/lib/auth";
+import { ApiError, authApi, meApi } from "@/lib/api";
+import { clearSession, setSession, setToken } from "@/lib/auth";
 import { roleHome } from "@/hooks/useAuth";
 import ErrorBox from "@/components/ErrorBox";
 
 function MagicExchange() {
   const router = useRouter();
   const params = useSearchParams();
+  const token = params.get("token") ?? "";
+  const startedToken = useRef<string | undefined>(undefined);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const token = params.get("token");
-    if (!token) {
-      setError(new Error("Link không hợp lệ."));
-      return;
+    if (startedToken.current === token) return;
+    startedToken.current = token;
+
+    async function login() {
+      if (!token) {
+        const user = await authApi.restoreSession();
+        if (user) {
+          router.replace(roleHome(user.role));
+          return;
+        }
+        throw new Error("Link không hợp lệ.");
+      }
+
+      let session;
+      try {
+        session = await authApi.exchangeMagicToken(token);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          const user = await authApi.restoreSession();
+          if (user) {
+            router.replace(roleHome(user.role));
+            return;
+          }
+        }
+        throw err;
+      }
+
+      clearSession();
+      setToken(session.access_token);
+      const user = await meApi.profile();
+      setSession(session.access_token, user);
+      router.replace(roleHome(user.role));
     }
-    authApi
-      .exchangeMagicToken(token)
-      .then(async ({ access_token }) => {
-        setToken(access_token);
-        const user = await meApi.profile();
-        setSession(access_token, user);
-        router.replace(roleHome(user.role));
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err : new Error("Link hết hạn hoặc đã dùng."));
-      });
-  }, []);
+
+    login().catch((err) => {
+      setError(err instanceof Error ? err : new Error("Link hết hạn hoặc đã dùng."));
+    });
+  }, [token, router]);
 
   if (error) {
     return (

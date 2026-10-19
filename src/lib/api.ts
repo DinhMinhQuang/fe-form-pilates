@@ -1,4 +1,4 @@
-import { clearSession, getToken } from "@/lib/auth";
+import { clearSession, getToken, getUser, setSession } from "@/lib/auth";
 import type {
   AdjustCreditBody,
   AdminCancelBookingBody,
@@ -51,16 +51,17 @@ async function request<T>(
     ...(init.headers as Record<string, string>),
   };
 
-  if (auth) {
-    const token = getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  }
+  const token = auth ? getToken() : null;
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE}${path}`, { ...init, headers });
   if (!res.ok) {
-    if (res.status === 401 && auth) {
+    if (res.status === 401 && auth && getToken() === token) {
+      const student = getUser()?.role === "student"
+        || window.location.pathname.startsWith("/student/")
+        || window.location.pathname.startsWith("/magic");
       clearSession();
-      window.location.href = "/login";
+      window.location.href = student ? "/student/login" : "/login";
       throw new ApiError(401, "Unauthorized");
     }
     let msg = res.statusText;
@@ -361,6 +362,15 @@ function toTrainerStudentBooking(r: RawStudentInClass): Booking {
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authApi = {
+  restoreSession: async (): Promise<AppUser | null> => {
+    const token = getToken();
+    if (!token) return null;
+    const user = await meApi.profile();
+    if (getToken() !== token) return null;
+    setSession(token, user);
+    return user;
+  },
+
   requestMagicLink: (email?: string, phone?: string) =>
     post<{ message: string }>("/auth/magic-links", { email, phone }, false),
 

@@ -15,6 +15,7 @@ interface ModalProps {
 export default function Modal({ title, open, onClose, children, fullScreenMobile }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Wait for hydration before portaling into document.body.
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {

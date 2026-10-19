@@ -206,6 +206,7 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the mounted form when the selected session changes.
     setBranchId(session.branch_id);
     setClassTypeId(session.class_type_id);
     setTrainerId(session.trainer_id ?? "");
