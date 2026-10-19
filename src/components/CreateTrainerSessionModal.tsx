@@ -85,6 +85,7 @@ export default function CreateTrainerSessionModal({ open, onClose, onCreated }: 
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Refresh defaults whenever this mounted modal opens.
       setStartAt(defaultStart());
       setEndAt(defaultEnd());
     }

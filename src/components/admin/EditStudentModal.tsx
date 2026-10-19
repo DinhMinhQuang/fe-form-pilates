@@ -26,6 +26,7 @@ export default function EditStudentModal({ student, onClose, onSaved }: Props) {
 
   useEffect(() => {
     if (student) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the mounted form when the selected student changes.
       setFullName(student.full_name);
       setEmail(student.email ?? "");
       setPhone(student.phone ?? "");

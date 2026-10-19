@@ -28,6 +28,7 @@ export default function EditTrainerModal({ trainer, onClose, onSaved }: Props) {
 
   useEffect(() => {
     if (trainer) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the mounted form when the selected trainer changes.
       setFullName(trainer.full_name);
       setEmail(trainer.email ?? "");
       setPhone(trainer.phone ?? "");

@@ -34,6 +34,7 @@ export default function BookForStudentModal({ studentId, studentName, open, onCl
   const [booking, setBooking] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
+  // eslint-disable-next-line react-hooks/purity -- Refresh past/future booking labels on render; the backend validates booking time.
   const now = Date.now();
   // Credit phải còn hạn TẠI thời điểm buổi diễn ra (khớp điều kiện backend
   // cl.expires_at >= session.start_at), không phải tại thời điểm admin thao
