@@ -59,7 +59,7 @@ export default function DatePicker({ value, onChange, placeholder, className, di
       <Popover.Trigger asChild disabled={disabled}>
         <button type="button" className={`${triggerClass} ${className ?? ""}`} style={triggerStyle}>
           <span style={!value ? { color: "var(--warm-gray-light)" } : undefined}>
-            {value ? new Date(value).toLocaleDateString("vi-VN") : (placeholder ?? "Chọn ngày")}
+            {selected ? selected.toLocaleDateString("vi-VN") : (placeholder ?? "Chọn ngày")}
           </span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: "var(--warm-gray)", flexShrink: 0 }}>
             <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -79,6 +79,8 @@ export default function DatePicker({ value, onChange, placeholder, className, di
           <DayPicker
             mode="single"
             locale={vi}
+            weekStartsOn={1}
+            defaultMonth={selected}
             selected={selected}
             onSelect={(d) => onChange(d ? toDateInputValue(d) : "")}
             disabled={matchers.length ? matchers : undefined}

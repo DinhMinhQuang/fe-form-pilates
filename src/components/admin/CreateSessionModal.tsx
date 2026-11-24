@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
+import SessionDateTimeField from "@/components/SessionDateTimeField";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import Select from "@/components/Select";
@@ -343,28 +344,8 @@ export default function CreateSessionModal({ open, onClose, onCreated }: Props) 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
-              Bắt đầu <span style={{ color: "var(--accent)" }}>*</span>
-            </label>
-            <input
-              type="datetime-local" className={inputClass} style={inputStyle}
-              value={startAt} onChange={(e) => handleStartAtChange(e.target.value)}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
-              Kết thúc <span style={{ color: "var(--accent)" }}>*</span>
-            </label>
-            <input
-              type="datetime-local" className={inputClass} style={inputStyle}
-              value={endAt} onChange={(e) => setEndAt(e.target.value)}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "var(--sand)")}
-            />
-          </div>
+          <SessionDateTimeField label="Bắt đầu" required value={startAt} onChange={handleStartAtChange} />
+          <SessionDateTimeField label="Kết thúc" required value={endAt} onChange={setEndAt} />
         </div>
 
         <div className="flex flex-col gap-1.5">

@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
+import SessionDateTimeField from "@/components/SessionDateTimeField";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import Select from "@/components/Select";
 import { catalogApi, trainerApi } from "@/lib/api";
 
-const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
-const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
 const START_OFFSET_HOURS = 1;
 const DEFAULT_DURATION_MINUTES = 55;
 const MAX_SESSION_DURATION_MS = 3 * 60 * 60 * 1000;
@@ -164,18 +163,8 @@ export default function CreateTrainerSessionModal({ open, onClose, onCreated }: 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
-              Bắt đầu <span style={{ color: "var(--accent)" }}>*</span>
-            </label>
-            <input type="datetime-local" className={inputClass} style={inputStyle} value={startAt} onChange={(e) => handleStartAtChange(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>
-              Kết thúc <span style={{ color: "var(--accent)" }}>*</span>
-            </label>
-            <input type="datetime-local" className={inputClass} style={inputStyle} value={endAt} onChange={(e) => setEndAt(e.target.value)} />
-          </div>
+          <SessionDateTimeField label="Bắt đầu" required value={startAt} onChange={handleStartAtChange} />
+          <SessionDateTimeField label="Kết thúc" required value={endAt} onChange={setEndAt} />
         </div>
 
         <FormError error={error} />
