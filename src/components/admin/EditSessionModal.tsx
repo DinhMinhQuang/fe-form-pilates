@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Modal from "@/components/Modal";
+import SessionDateTimeField from "@/components/SessionDateTimeField";
 import FormError from "@/components/FormError";
 import Btn from "@/components/Btn";
 import { adminBookingApi, adminSessionApi, adminStudentApi, adminTrainerApi, catalogApi } from "@/lib/api";
@@ -10,8 +11,6 @@ import type { Booking, ClassSession, Student } from "@/types";
 import CancelBookingModal from "@/components/admin/CancelBookingModal";
 import Select from "@/components/Select";
 
-const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none border transition-colors";
-const inputStyle = { borderColor: "var(--sand)", background: "var(--cream)", color: "var(--charcoal)" };
 const MAX_SESSION_DURATION_MS = 2 * 60 * 60 * 1000;
 
 const BOOKING_STATUS_MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -237,6 +236,10 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!startAt || !endAt) {
+      setError(new Error("Vui lòng chọn đủ ngày và giờ bắt đầu, kết thúc"));
+      return;
+    }
     if (new Date(endAt) <= new Date(startAt)) {
       setError(new Error("Thời gian kết thúc phải sau thời gian bắt đầu"));
       return;
@@ -312,14 +315,8 @@ export default function EditSessionModal({ session, open, onClose, onSaved, onRo
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Bắt đầu</label>
-            <input type="datetime-local" className={inputClass} style={inputStyle} value={startAt} onChange={(e) => setStartAt(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--warm-gray)" }}>Kết thúc</label>
-            <input type="datetime-local" className={inputClass} style={inputStyle} value={endAt} onChange={(e) => setEndAt(e.target.value)} />
-          </div>
+          <SessionDateTimeField label="Bắt đầu" value={startAt} onChange={setStartAt} />
+          <SessionDateTimeField label="Kết thúc" value={endAt} onChange={setEndAt} />
         </div>
 
         <div className="flex flex-col gap-1.5">
