@@ -128,7 +128,7 @@ export default function AdminStudentsPage() {
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0" style={{ background: "var(--sand)", color: "var(--charcoal)" }}>
                       {s.full_name[0]?.toUpperCase()}
                     </div>
-                    <span className="font-medium" style={{ color: "var(--charcoal)" }}>{s.full_name}</span>
+                    <div><span className="font-medium" style={{ color: "var(--charcoal)" }}>{s.full_name}</span><div className="text-xs" style={{ color: "var(--warm-gray)" }}>{s.student_code}</div></div>
                   </div>
                 </td>
                 <td className="px-5 py-3.5" style={{ color: "var(--warm-gray)" }}>{s.email ?? "—"}</td>

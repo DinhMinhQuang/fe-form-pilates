@@ -37,8 +37,10 @@ export default function StudentDrawer({ student, onClose }: Props) {
   const [adjustingLot, setAdjustingLot] = useState<AdminCreditLot | null>(null);
   const [disabling, setDisabling] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
-  const [magicLinkStatus, setMagicLinkStatus] = useState<"idle" | "pending" | "sent" | "failed">("idle");
+  const [magicLinkChannel, setMagicLinkChannel] = useState<"email" | "zalo">("email");
+  const [magicLinkStatus, setMagicLinkStatus] = useState<"idle" | "pending" | "queued" | "sent" | "failed">("idle");
   const [magicLinkError, setMagicLinkError] = useState<Error | null>(null);
+  const magicLinkRun = useRef(0);
   const magicLinkPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: detail, error: detailError, mutate: mutateDetail } = useSWR(
@@ -52,6 +54,7 @@ export default function StudentDrawer({ student, onClose }: Props) {
   );
 
   useEffect(() => {
+    magicLinkRun.current += 1;
     if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear delivery status when the drawer switches students.
     setMagicLinkStatus("idle");
@@ -59,6 +62,7 @@ export default function StudentDrawer({ student, onClose }: Props) {
   }, [student?.id]);
 
   useEffect(() => () => {
+    magicLinkRun.current += 1;
     if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
   }, []);
 
@@ -91,31 +95,40 @@ export default function StudentDrawer({ student, onClose }: Props) {
     }
   }
 
-  async function handleSendMagicLink() {
+  async function handleSendMagicLink(channel: "email" | "zalo") {
     if (!student) return;
+    if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
+    const run = ++magicLinkRun.current;
+    setMagicLinkChannel(channel);
     setMagicLinkStatus("pending");
     setMagicLinkError(null);
     try {
-      const { id: outboxId } = await adminStudentApi.sendMagicLink(student.id);
-      // Email gửi async qua worker (poll mỗi 15s) — poll trạng thái outbox tối đa ~45s
+      const { id: outboxId } = await adminStudentApi.sendMagicLink(student.id, channel);
+      if (run !== magicLinkRun.current) return;
+      // Tin gửi async qua worker (poll mỗi 15s) — poll trạng thái outbox tối đa ~45s
       // rồi dừng, ngay cả khi vẫn "pending" (không chặn admin thao tác tiếp).
       let attempts = 0;
       magicLinkPollRef.current = setInterval(async () => {
         attempts += 1;
         try {
-          const { status } = await adminEmailOutboxApi.status(outboxId);
+          const { status } = await (channel === "zalo" ? adminStudentApi.znsStatus(outboxId) : adminEmailOutboxApi.status(outboxId));
+          if (run !== magicLinkRun.current) return;
           if (status === "sent" || status === "failed") {
             setMagicLinkStatus(status);
-            if (status === "failed") setMagicLinkError(new Error("Gửi email thất bại, vui lòng thử lại."));
+            if (status === "failed") setMagicLinkError(new Error(`Gửi ${channel === "zalo" ? "Zalo" : "email"} thất bại, vui lòng thử lại.`));
             if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
           } else if (attempts >= 15) {
+            setMagicLinkStatus("queued");
             if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
           }
         } catch {
+          if (run !== magicLinkRun.current) return;
+          setMagicLinkStatus("queued");
           if (magicLinkPollRef.current) clearInterval(magicLinkPollRef.current);
         }
       }, 3000);
     } catch (err) {
+      if (run !== magicLinkRun.current) return;
       setMagicLinkStatus("failed");
       setMagicLinkError(err instanceof Error ? err : new Error(String(err)));
     }
@@ -151,28 +164,29 @@ export default function StudentDrawer({ student, onClose }: Props) {
             </div>
             <div>
               <div className="font-semibold text-sm" style={{ color: "var(--charcoal)" }}>{student.full_name}</div>
+              <div className="text-xs" style={{ color: "var(--warm-gray)" }}>{student.student_code}</div>
               <div className="text-xs mt-0.5" style={{ color: "var(--warm-gray)" }}>
                 {[student.email, student.phone].filter(Boolean).join(" · ")}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <Btn
               variant="ghost"
               size="sm"
               style={{ color: "var(--charcoal)" }}
-              disabled={!student.email || magicLinkStatus === "pending"}
-              title={!student.email ? "Học viên chưa có email" : undefined}
-              onClick={handleSendMagicLink}
+              disabled={!student.email?.trim() || (magicLinkStatus === "pending" && magicLinkChannel === "email")}
+              title={!student.email?.trim() ? "Học viên chưa có email" : undefined}
+              onClick={() => handleSendMagicLink("email")}
             >
-              {magicLinkStatus === "pending"
-                ? "Đang gửi..."
-                : magicLinkStatus === "sent"
-                  ? "Đã gửi"
-                  : magicLinkStatus === "failed"
-                    ? "Gửi thất bại — thử lại"
-                    : "Gửi magic link"}
+              {magicLinkStatus === "pending" && magicLinkChannel === "email" ? "Đang gửi email..." : "Gửi email"}
             </Btn>
+            <Btn variant="ghost" size="sm"
+              style={{ color: "var(--charcoal)" }}
+              disabled={!student.phone?.trim() || (magicLinkStatus === "pending" && magicLinkChannel === "zalo")}
+              title={!student.phone?.trim() ? "Học viên chưa có số điện thoại" : "Gửi link đăng nhập qua Zalo"}
+              onClick={() => handleSendMagicLink("zalo")}
+            >{magicLinkStatus === "pending" && magicLinkChannel === "zalo" ? "Đang gửi Zalo..." : "Gửi Zalo"}</Btn>
             {detail && (
               <Btn variant={detail.status === "active" ? "danger" : "ghost"} size="sm" disabled={disabling} onClick={handleToggleStatus}>
                 {disabling ? "..." : detail.status === "active" ? "Vô hiệu hoá" : "Kích hoạt lại"}
@@ -186,6 +200,8 @@ export default function StudentDrawer({ student, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
           {detailError && <ErrorBox error={detailError} onRetry={() => mutateDetail()} />}
           {magicLinkError && <FormError error={magicLinkError} />}
+          {magicLinkStatus === "queued" && <p role="status" className="text-sm">Tin đã vào hàng đợi, chưa xác nhận gửi thành công. Không cần gửi lại ngay.</p>}
+          {magicLinkStatus === "sent" && <p role="status" className="text-sm">{magicLinkChannel === "zalo" ? "Zalo đã tiếp nhận tin gửi. Trạng thái này chưa xác nhận học viên đã nhận tin." : "Đã gửi email đăng nhập."}</p>}
 
           {/* Credits + book */}
           <div className="flex items-center justify-between">
