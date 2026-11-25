@@ -540,8 +540,11 @@ export const adminStudentApi = {
 
   disable: (studentId: string) => del<void>(`/admin/students/${studentId}`),
 
-  sendMagicLink: (studentId: string) =>
-    post<{ id: string; status: string }>(`/admin/students/${studentId}/magic-link`),
+  sendMagicLink: (studentId: string, channel: "email" | "zalo" = "email") =>
+    post<{ id: string; status: string }>(`/admin/students/${studentId}/magic-link?channel=${channel}`),
+
+  znsStatus: (outboxId: string) =>
+    get<{ id: string; status: string }>(`/admin/zns-outbox/${outboxId}`),
 
   book: (studentId: string, sessionId: string) =>
     post<{ booking_id: string }>(

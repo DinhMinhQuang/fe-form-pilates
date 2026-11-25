@@ -135,6 +135,7 @@ export interface Trainer extends AppUser {
 // ─── Student ──────────────────────────────────────────────────────────────────
 
 export interface Student extends AppUser {
+  student_code: string;
   role: "student";
   credits: number;
 }
@@ -154,6 +155,7 @@ export interface AdminCreditLot {
 }
 
 export interface StudentDetail {
+  student_code: string;
   id: string;
   full_name: string;
   email: string | null;

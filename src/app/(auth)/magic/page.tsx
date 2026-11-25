@@ -10,11 +10,13 @@ import ErrorBox from "@/components/ErrorBox";
 function MagicExchange() {
   const router = useRouter();
   const params = useSearchParams();
-  const token = params.get("token") ?? "";
+  const queryToken = params.get("token") ?? "";
   const startedToken = useRef<string | undefined>(undefined);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    const pathMatch = window.location.pathname.match(/^\/auth\/magic\/([^/]+)\/?$/);
+    const token = pathMatch ? decodeURIComponent(pathMatch[1]) : queryToken;
     if (startedToken.current === token) return;
     startedToken.current = token;
 
@@ -52,7 +54,7 @@ function MagicExchange() {
     login().catch((err) => {
       setError(err instanceof Error ? err : new Error("Link hết hạn hoặc đã dùng."));
     });
-  }, [token, router]);
+  }, [queryToken, router]);
 
   if (error) {
     return (
